@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  name      String
+  role      String    // STUDENT, TEACHER, ADMIN
+  studentNo String?   @unique
+  teacherNo String?   @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  teacher      Teacher?
+  enrollments  Enrollment[]
+  evaluations  Evaluation[]
+  loginLogs    LoginLog[]
+}
+
+model Teacher {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @unique
+  user      User      @relation(fields: [userId], references: [id])
+  title     String
+  college   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  courseTeachers CourseTeacher[]
+}
+
+model Course {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  name        String
+  credits     Float
+  college     String
+  semester    String
+  description String
+  coverColor  String    @default("#3B82F6")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  enrollments     Enrollment[]
+  evaluations     Evaluation[]
+  courseTeachers  CourseTeacher[]
+  statsReports    StatsReport[]
+}
+
+model CourseTeacher {
+  id        Int  @id @default(autoincrement())
+  courseId  Int
+  teacherId Int
+
+  course  Course  @relation(fields: [courseId], references: [id])
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  @@unique([courseId, teacherId])
+}
+
+model Enrollment {
+  id        Int  @id @default(autoincrement())
+  studentId Int
+  courseId  Int
+
+  student User   @relation(fields: [studentId], references: [id])
+  course  Course @relation(fields: [courseId], references: [id])
+
+  @@unique([studentId, courseId])
+}
+
+model Evaluation {
+  id             Int      @id @default(autoincrement())
+  studentId      Int
+  courseId       Int
+  scoreContent   Int
+  scoreAttitude  Int
+  scoreMethod    Int
+  scoreExam      Int
+  scoreOverall   Int
+  avgScore       Float
+  comment        String?
+  isAnonymous    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  student User   @relation(fields: [studentId], references: [id])
+  course  Course @relation(fields: [courseId], references: [id])
+
+  @@unique([studentId, courseId])
+}
+
+model StatsReport {
+  id          Int      @id @default(autoincrement())
+  courseId    Int
+  dimension   String
+  avgScore    Float
+  median      Float
+  stdDev      Float
+  maxScore    Float
+  minScore    Float
+  evalCount   Int
+  scoreDist   String
+  wordCloud   String?
+  generatedAt DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id])
+}
+
+model LoginLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  ip        String   @default("")
+  userAgent String   @default("")
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model SystemConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
