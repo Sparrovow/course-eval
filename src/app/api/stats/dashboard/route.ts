@@ -64,10 +64,21 @@ export async function GET(request: NextRequest) {
         .filter(Boolean)
       const totalEvalCount = allOverall.reduce((s, d) => s + d.evalCount, 0)
 
+      // Also return evaluation comments for this teacher's courses
+      const evaluations = await prisma.evaluation.findMany({
+        where: { courseId: { in: courseIds } },
+        include: {
+          student: { select: { id: true, name: true, studentNo: true } },
+          course: { select: { id: true, name: true, code: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      })
+
       return NextResponse.json({
         code: 200,
         data: {
           courses: courseDashboards,
+          evaluations,
           summary: {
             totalCourses: courseDashboards.length,
             totalEvalCount,
