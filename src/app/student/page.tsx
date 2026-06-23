@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { FaStar } from "react-icons/fa6"
 
 interface User { id: number; email: string; name: string; role: string; studentNo?: string; teacherNo?: string }
 interface Course {
@@ -10,12 +11,24 @@ interface Course {
   description: string; coverColor: string; teachers: { id: number; name: string; title: string }[]
   isEnrolled: boolean; isEvaluated: boolean; evalCount: number
 }
+interface MyEval {
+  id: number; avgScore: number; scoreContent: number; scoreAttitude: number; scoreMethod: number
+  scoreExam: number; scoreOverall: number; comment: string | null; createdAt: string
+  course: { id: number; code: string; name: string; semester: string; coverColor: string }
+}
 
 export default function StudentPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [courses, setCourses] = useState<Course[]>([])
+  const [myEvals, setMyEvals] = useState<MyEval[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState("全部课程")
+  const [search, setSearch] = useState("")
+  const [semesterFilter, setSemesterFilter] = useState("")
+  const [collegeFilter, setCollegeFilter] = useState("")
+  const [showHistory, setShowHistory] = useState(false)
+  const [detailEval, setDetailEval] = useState<MyEval | null>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem("user")
@@ -30,6 +43,10 @@ export default function StudentPage() {
     fetch("/api/courses").then(r => r.json()).then(d => {
       if (d.code === 200) setCourses(d.data)
     }).finally(() => setLoading(false))
+
+    fetch("/api/stats/dashboard").then(r => r.json()).then(d => {
+      if (d.code === 200) setMyEvals(d.data.myEvaluations || [])
+    })
   }, [router])
 
   const handleLogout = async () => {
@@ -38,6 +55,24 @@ export default function StudentPage() {
     router.push("/")
   }
 
+  // Compute unique semesters and colleges for filter dropdowns
+  const semesters = useMemo(() => [...new Set(courses.map(c => c.semester))].sort(), [courses])
+  const colleges = useMemo(() => [...new Set(courses.map(c => c.college))].sort(), [courses])
+
+  // Filter courses
+  const filtered = useMemo(() => {
+    let result = courses
+    if (activeTab === "已选修") result = result.filter(c => c.isEnrolled)
+    if (activeTab === "已评价") result = result.filter(c => c.isEvaluated)
+    if (activeTab === "待评价") result = result.filter(c => c.isEnrolled && !c.isEvaluated)
+    if (search) result = result.filter(c => c.name.includes(search) || c.code.toLowerCase().includes(search.toLowerCase()))
+    if (semesterFilter) result = result.filter(c => c.semester === semesterFilter)
+    if (collegeFilter) result = result.filter(c => c.college === collegeFilter)
+    return result
+  }, [courses, activeTab, search, semesterFilter, collegeFilter])
+
+  const findMyEval = (courseId: number) => myEvals.find(e => e.course.id === courseId)
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
   )
@@ -45,7 +80,7 @@ export default function StudentPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🎓</span>
@@ -55,88 +90,241 @@ export default function StudentPage() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
-              {user?.name} ({user?.studentNo})
-            </span>
+            <button onClick={() => setShowHistory(!showHistory)} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              {showHistory ? "← 返回课程" : "📋 我的评价历史"}
+            </button>
+            <span className="text-sm text-gray-600 hidden sm:inline">{user?.name} ({user?.studentNo})</span>
             <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-600">退出</button>
           </div>
         </div>
       </header>
 
-      {/* Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">课程列表</h2>
-          <p className="text-gray-500 mt-1">
-            浏览全部课程，对已选修的课程进行评价。共 {courses.length} 门课程，
-            已选修 {courses.filter(c => c.isEnrolled).length} 门，
-            已评价 {courses.filter(c => c.isEvaluated).length} 门
-          </p>
-        </div>
-
-        {/* Filter tabs */}
-        <div className="flex gap-2 mb-6">
-          {["全部课程", "已选修", "已评价", "待评价"].map((tab, i) => (
-            <button key={i} className="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Course grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map(course => (
-            <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-              {/* Color bar */}
-              <div className="h-2" style={{ backgroundColor: course.coverColor }} />
-              <div className="p-5">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <span className="text-xs font-medium text-gray-400">{course.code}</span>
-                    <h3 className="text-lg font-semibold text-gray-900 mt-0.5">{course.name}</h3>
-                  </div>
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{course.semester}</span>
-                </div>
-
-                <p className="text-sm text-gray-500 mb-3 line-clamp-2">{course.description}</p>
-
-                <div className="flex items-center gap-2 mb-3 text-xs text-gray-400">
-                  <span>学分: {course.credits}</span>
-                  <span>·</span>
-                  <span>{course.college}</span>
-                  <span>·</span>
-                  <span>{course.evalCount} 条评价</span>
-                </div>
-
-                <div className="flex flex-wrap gap-1 mb-4">
-                  {course.teachers.map(t => (
-                    <span key={t.id} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
-                      {t.name} {t.title}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Action button */}
-                {course.isEvaluated ? (
-                  <div className="w-full py-2 bg-green-50 text-green-700 text-center rounded-lg text-sm font-medium">
-                    ✅ 已评价
-                  </div>
-                ) : course.isEnrolled ? (
-                  <Link
-                    href={`/student/evaluate/${course.id}`}
-                    className="block w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-lg text-sm font-medium transition-colors"
-                  >
-                    去评价
-                  </Link>
-                ) : (
-                  <div className="w-full py-2 bg-gray-100 text-gray-400 text-center rounded-lg text-sm">
-                    🔒 未选修
-                  </div>
-                )}
+        {showHistory ? (
+          /* ─── My Evaluations History ─── */
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">我的评价历史</h2>
+            <p className="text-gray-500 mb-6">共 {myEvals.length} 条评价记录</p>
+            {myEvals.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-400">
+                你还没有提交过任何评价
               </div>
+            ) : (
+              <div className="space-y-4">
+                {myEvals.map(e => (
+                  <div key={e.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: e.course.coverColor }}>
+                          {e.course.name[0]}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">{e.course.code}</span>
+                            <h3 className="font-semibold text-gray-900">{e.course.name}</h3>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5">{e.course.semester} · {new Date(e.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-blue-600">
+                          <FaStar /><span className="font-bold text-lg">{e.avgScore.toFixed(1)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {e.comment && (
+                      <div className="mt-3 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                        {e.comment}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ─── Course Browser ─── */
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">课程列表</h2>
+              <p className="text-gray-500 mt-1">
+                共 {courses.length} 门课程 · 已选修 {courses.filter(c => c.isEnrolled).length} 门 · 已评价 {courses.filter(c => c.isEvaluated).length} 门 · 待评价 {courses.filter(c => c.isEnrolled && !c.isEvaluated).length} 门
+              </p>
             </div>
-          ))}
-        </div>
+
+            {/* Search + Filter Row */}
+            <div className="flex flex-wrap gap-3 mb-6">
+              {/* Search */}
+              <div className="relative flex-1 min-w-[200px] max-w-md">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                <input
+                  type="text" placeholder="搜索课程名称或编号..." value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                />
+              </div>
+              {/* Semester filter */}
+              <select value={semesterFilter} onChange={e => setSemesterFilter(e.target.value)}
+                className="px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                <option value="">全部学期</option>
+                {semesters.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              {/* College filter */}
+              <select value={collegeFilter} onChange={e => setCollegeFilter(e.target.value)}
+                className="px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                <option value="">全部学院</option>
+                {colleges.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            {/* Filter tabs */}
+            <div className="flex gap-2 mb-6">
+              {["全部课程", "已选修", "已评价", "待评价"].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab ? "bg-blue-600 text-white shadow-sm" : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"}`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* Course grid */}
+            {filtered.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-400">
+                没有符合条件的课程
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filtered.map(course => {
+                  const myEval = findMyEval(course.id)
+                  return (
+                    <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                      <div className="h-2" style={{ backgroundColor: course.coverColor }} />
+                      <div className="p-5">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <span className="text-xs font-medium text-gray-400">{course.code}</span>
+                            <h3 className="text-lg font-semibold text-gray-900 mt-0.5">{course.name}</h3>
+                          </div>
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded whitespace-nowrap">{course.semester}</span>
+                        </div>
+
+                        <p className="text-sm text-gray-500 mb-3 line-clamp-2">{course.description}</p>
+
+                        <div className="flex items-center gap-2 mb-3 text-xs text-gray-400">
+                          <span>学分: {course.credits}</span>
+                          <span>·</span>
+                          <span>{course.college}</span>
+                          <span>·</span>
+                          <span>{course.evalCount} 条评价</span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1 mb-4">
+                          {course.teachers.map(t => (
+                            <span key={t.id} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                              {t.name} {t.title}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex gap-2">
+                          {course.isEvaluated ? (
+                            <>
+                              <button
+                                onClick={() => { const e = findMyEval(course.id); if (e) setDetailEval(e) }}
+                                className="flex-1 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
+                              >
+                                ✅ 已评价（查看）
+                              </button>
+                              <button
+                                onClick={() => { const e = findMyEval(course.id); if (e) setDetailEval(e) }}
+                                className="px-3 py-2 bg-white border border-gray-200 text-gray-500 rounded-lg text-xs hover:bg-gray-50"
+                              >
+                                详情
+                              </button>
+                            </>
+                          ) : course.isEnrolled ? (
+                            <Link
+                              href={`/student/evaluate/${course.id}`}
+                              className="block flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-lg text-sm font-medium transition-colors"
+                            >
+                              去评价
+                            </Link>
+                          ) : (
+                            <div className="flex-1 py-2 bg-gray-100 text-gray-400 text-center rounded-lg text-sm">
+                              🔒 未选修
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── Evaluation Detail Modal ─── */}
+        {detailEval && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setDetailEval(null)}>
+            <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: detailEval.course.coverColor }}>
+                    {detailEval.course.name[0]}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{detailEval.course.name}</h3>
+                    <p className="text-xs text-gray-400">{detailEval.course.code} · {detailEval.course.semester}</p>
+                  </div>
+                </div>
+                <button onClick={() => setDetailEval(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+              </div>
+
+              {/* Summary score */}
+              <div className="flex items-center justify-center gap-2 py-4 mb-4 bg-blue-50 rounded-xl">
+                <FaStar className="text-blue-600 text-xl" />
+                <span className="text-3xl font-bold text-blue-600">{detailEval.avgScore.toFixed(1)}</span>
+                <span className="text-sm text-blue-400">/ 5.0</span>
+              </div>
+
+              {/* Dimension scores */}
+              <div className="space-y-3 mb-4">
+                {[
+                  { label: "教学内容", score: detailEval.scoreContent },
+                  { label: "教学态度", score: detailEval.scoreAttitude },
+                  { label: "教学方法", score: detailEval.scoreMethod },
+                  { label: "考核方式", score: detailEval.scoreExam },
+                  { label: "综合满意度", score: detailEval.scoreOverall },
+                ].map(d => (
+                  <div key={d.label} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">{d.label}</span>
+                    <div className="flex items-center gap-1">
+                      {[1,2,3,4,5].map(s => (
+                        <FaStar key={s} className={s <= d.score ? "text-yellow-400" : "text-gray-200"} />
+                      ))}
+                      <span className="text-sm font-medium text-gray-700 ml-2 w-4">{d.score}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Comment */}
+              {detailEval.comment && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">留言评价</h4>
+                  <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 leading-relaxed">{detailEval.comment}</p>
+                </div>
+              )}
+
+              <p className="text-xs text-gray-400 mt-4">提交时间: {new Date(detailEval.createdAt).toLocaleString()}</p>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )
