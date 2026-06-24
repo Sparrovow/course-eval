@@ -8,18 +8,18 @@ export async function POST(request: NextRequest) {
     const { email, password } = await request.json()
 
     if (!email || !password) {
-      return NextResponse.json({ code: 422, message: "请输入邮箱和密码" }, { status: 422 })
+      return NextResponse.json({ code: 422, message: "Please enter email and password" }, { status: 422 })
     }
 
     const user = await prisma.user.findUnique({ where: { email } })
 
     if (!user) {
-      return NextResponse.json({ code: 401, message: "该账号未注册" }, { status: 401 })
+      return NextResponse.json({ code: 401, message: "Account not found" }, { status: 401 })
     }
 
     const valid = bcrypt.compareSync(password, user.password)
     if (!valid) {
-      return NextResponse.json({ code: 401, message: "密码错误" }, { status: 401 })
+      return NextResponse.json({ code: 401, message: "Invalid password" }, { status: 401 })
     }
 
     const token = await signToken({ userId: user.id, role: user.role })
@@ -60,6 +60,6 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     console.error("Login error:", error)
-    return NextResponse.json({ code: 500, message: "服务器内部错误" }, { status: 500 })
+    return NextResponse.json({ code: 500, message: "Internal server error" }, { status: 500 })
   }
 }
