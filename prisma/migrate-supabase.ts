@@ -300,6 +300,39 @@ async function main() {
   }
   evalDates.sort(() => Math.random() - 0.5);
 
+  // ─── Also generate 3 preset evals for each test student ───
+  for (const student of testStudentObjs) {
+    for (let k = 0; k < 3; k++) {
+      const courseIdx = randInt(0, courses.length - 1);
+      const baseScore = randInt(3, 5);
+      const scores = [
+        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
+        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
+        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
+        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
+        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
+      ];
+      const avg = scores.reduce((a, b) => a + b, 0) / 5;
+      const sem = courseData[courseIdx].semester;
+      const range = semDates[sem];
+      const ms = range.end.getTime() - range.start.getTime();
+      const d = new Date(range.start.getTime() + Math.random() * ms);
+      const pool = avg >= 4 ? positiveComments : avg >= 3 ? neutralComments : negativeComments;
+      const comment = Math.random() < 0.7 ? pick(pool) : "";
+
+      await prisma.evaluation.create({
+        data: {
+          studentId: student.id, courseId: courses[courseIdx].id,
+          scoreContent: scores[0], scoreAttitude: scores[1], scoreMethod: scores[2],
+          scoreExam: scores[3], scoreOverall: scores[4],
+          avgScore: Math.round(avg * 100) / 100,
+          comment: comment || null,
+          createdAt: d,
+        },
+      }).catch(() => {});
+    }
+  }
+
   let dateIdx = 0;
   for (let ci = 0; ci < courses.length; ci++) {
     const n = evalCount[ci];
