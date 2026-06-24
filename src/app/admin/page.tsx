@@ -264,22 +264,9 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Discipline filter */}
-            <div className="flex items-center gap-3 mb-6">
-              <span className="text-sm text-gray-500">学科筛选:</span>
-              <select value={dashboardCollegeFilter} onChange={e => setDashboardCollegeFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="">全部学科 ({(stats?.courses || []).length}门)</option>
-                {colleges.map(col => {
-                  const cnt = (stats?.courses || []).filter(c => c.course.college === col).length
-                  return <option key={col} value={col}>{col} ({cnt}门)</option>
-                })}
-              </select>
-            </div>
-
             {/* Course cards overview grouped by college */}
             {(() => {
-              const filteredCourses = (stats?.courses || []).filter(c => !dashboardCollegeFilter || c.course.college === dashboardCollegeFilter)
+              const filteredCourses = (stats?.courses || [])
               const grouped = new Map<string, typeof filteredCourses>()
               for (const c of filteredCourses) {
                 const key = c.course.college
