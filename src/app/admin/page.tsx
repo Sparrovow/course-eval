@@ -34,6 +34,8 @@ export default function AdminPage() {
   const [showDetailModal, setShowDetailModal] = useState<number | null>(null)
   const [showTeacherModal, setShowTeacherModal] = useState<number | null>(null)
   const [teacherCollegeFilter, setTeacherCollegeFilter] = useState("")
+  const [showAddTeacherModal, setShowAddTeacherModal] = useState(false)
+  const [teacherForm, setTeacherForm] = useState({ name: "", title: "讲师", college: "计算机科学与技术学院", email: "", password: "123456" })
   const [loginLogs, setLoginLogs] = useState<any[]>([])
   const [formData, setFormData] = useState({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6" })
   const [dashboardCollegeFilter, setDashboardCollegeFilter] = useState("")
@@ -126,6 +128,22 @@ export default function AdminPage() {
     const data = await res.json()
     if (data.code === 200) refreshData()
     else alert(data.message || "删除失败")
+  }
+
+  const handleAddTeacher = async () => {
+    const res = await fetch("/api/admin/teachers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(teacherForm),
+    })
+    const data = await res.json()
+    if (data.code === 200) {
+      setShowAddTeacherModal(false)
+      setTeacherForm({ name: "", title: "讲师", college: "计算机科学与技术学院", email: "", password: "123456" })
+      refreshData()
+    } else {
+      alert(data.message || "创建失败")
+    }
   }
 
   const loadLogs = async () => {
@@ -326,7 +344,6 @@ export default function AdminPage() {
               <h3 className="font-semibold text-gray-900">教师管理 ({teacherStats.length}人)</h3>
               <div className="flex items-center gap-3">
                 <button onClick={() => refreshData()} className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-xs hover:bg-gray-50">🔄 刷新数据</button>
-                <button onClick={() => alert("新增教师功能通过数据库种子脚本实现，请联系管理员")} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700">+ 新增教师</button>
                 <span className="text-xs text-gray-400">学院筛选:</span>
                 <select value={teacherCollegeFilter} onChange={e => setTeacherCollegeFilter(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
@@ -404,6 +421,28 @@ export default function AdminPage() {
                 </div>
               )
             })()}
+
+            {/* Add Teacher Modal */}
+            {showAddTeacherModal && (
+              <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowAddTeacherModal(false)}>
+                <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-lg font-bold mb-4">新增教师</h3>
+                  <div className="space-y-3">
+                    <div><input placeholder="教师姓名 *" value={teacherForm.name} onChange={e => setTeacherForm({ ...teacherForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /><label className="block text-xs text-gray-500 ml-1">教师姓名</label></div>
+                    <div className="flex gap-2">
+                      <div className="flex-1"><input placeholder="职称" value={teacherForm.title} onChange={e => setTeacherForm({ ...teacherForm, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /><label className="block text-xs text-gray-500 ml-1">职称</label></div>
+                      <div className="flex-1"><input placeholder="学院" value={teacherForm.college} onChange={e => setTeacherForm({ ...teacherForm, college: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /><label className="block text-xs text-gray-500 ml-1">学院</label></div>
+                    </div>
+                    <div><input placeholder="邮箱" type="email" value={teacherForm.email} onChange={e => setTeacherForm({ ...teacherForm, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /><label className="block text-xs text-gray-500 ml-1">邮箱</label></div>
+                    <div><input placeholder="密码" value={teacherForm.password} onChange={e => setTeacherForm({ ...teacherForm, password: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /><label className="block text-xs text-gray-500 ml-1">密码</label></div>
+                    <div className="flex gap-2">
+                      <button onClick={handleAddTeacher} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">创建</button>
+                      <button onClick={() => setShowAddTeacherModal(false)} className="py-2 px-4 border border-gray-300 rounded-lg text-sm">取消</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -482,7 +521,6 @@ export default function AdminPage() {
                       <th className="text-center py-3 px-4 font-medium text-gray-500">学分</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-500">学期</th>
                       <th className="text-center py-3 px-4 font-medium text-gray-500">评价数</th>
-                      <th className="text-center py-3 px-4 font-medium text-gray-500">操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -494,9 +532,6 @@ export default function AdminPage() {
                         <td className="py-3 px-4 text-center text-gray-600">{c.credits}</td>
                         <td className="py-3 px-4 text-gray-500">{c.semester}</td>
                         <td className="py-3 px-4 text-center text-blue-600 font-medium">{c.evalCount}</td>
-                        <td className="py-3 px-4 text-center">
-                          <button onClick={() => handleDeleteCourse(c.id, c.name)} className="text-red-500 hover:text-red-700 text-xs">删除</button>
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -524,7 +559,6 @@ export default function AdminPage() {
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-blue-600">{e.avgScore.toFixed(1)}</span>
                       <span className="text-xs text-gray-400">{new Date(e.createdAt).toLocaleDateString()}</span>
-                      <button onClick={() => handleDeleteEval(e.id)} className="text-red-500 hover:text-red-700 text-xs">删除</button>
                     </div>
                   </div>
                   {e.comment && <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{e.comment}</p>}

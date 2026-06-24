@@ -196,6 +196,13 @@ export default function StudentPage() {
                     {e.comment && (
                       <div className="mt-3 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">{e.comment}</div>
                     )}
+                    <div className="flex gap-3 text-xs text-gray-500 mt-2">
+                      <span>内容: {"★".repeat(e.scoreContent)}{"☆".repeat(5 - e.scoreContent)}</span>
+                      <span>态度: {"★".repeat(e.scoreAttitude)}{"☆".repeat(5 - e.scoreAttitude)}</span>
+                      <span>方法: {"★".repeat(e.scoreMethod)}{"☆".repeat(5 - e.scoreMethod)}</span>
+                      <span>考核: {"★".repeat(e.scoreExam)}{"☆".repeat(5 - e.scoreExam)}</span>
+                      <span>综合: {"★".repeat(e.scoreOverall)}{"☆".repeat(5 - e.scoreOverall)}</span>
+                    </div>
                   </div>
                 ))}
               </div>

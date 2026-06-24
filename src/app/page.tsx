@@ -49,7 +49,7 @@ export default function LoginPage() {
         <div className="max-w-md text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
             <FaGraduationCap className="text-5xl" />
-            <h1 className="text-3xl font-bold">在线课程评价系统</h1>
+            <h1 className="text-3xl font-bold">全国高校课程评价平台</h1>
           </div>
           <p className="text-lg text-blue-100 mb-8">
             高校课程评价平台 · 多维评分 · 数据可视化
@@ -66,7 +66,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8 text-blue-600">
             <FaGraduationCap className="text-3xl" />
-            <h1 className="text-2xl font-bold">在线课程评价系统</h1>
+            <h1 className="text-2xl font-bold">全国高校课程评价平台</h1>
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-2">欢迎回来</h2>
