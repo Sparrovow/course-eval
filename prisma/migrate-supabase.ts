@@ -48,13 +48,13 @@ function randInt(min: number, max: number) { return Math.floor(Math.random() * (
 function pick<T>(arr: T[]): T { return arr[randInt(0, arr.length - 1)] }
 
 function getCollege(code: string): string {
-  if (code.startsWith("CS")) return "计算机科学与技术学院";
-  if (code.startsWith("MATH")) return "数学与统计学院";
-  if (code.startsWith("ENG")) return "外国语学院";
-  if (code.startsWith("MGMT")) return "经济管理学院";
-  if (code.startsWith("EE")) return "电子信息工程学院";
-  if (code.startsWith("HUM")) return "人文学院";
-  return "计算机科学与技术学院";
+  if (code.startsWith("CS")) return "Computer Science";
+  if (code.startsWith("MATH")) return "Mathematics & Statistics";
+  if (code.startsWith("ENG")) return "Foreign Languages & Literature";
+  if (code.startsWith("BUS")) return "Business & Economics";
+  if (code.startsWith("EE")) return "Electronic Engineering";
+  if (code.startsWith("HUM")) return "Humanities & Social Sciences";
+  return "Computer Science";
 }
 
 
@@ -103,18 +103,14 @@ async function main() {
     testStudentObjs.push(await prisma.user.create({ data: { email: s.email, password: hash, name: s.name, role: "STUDENT", studentNo: s.sno } }));
   }
 
-  // Virtual students (40, no login accounts)
+  // Virtual students (20, no login accounts)
   const virtualStudentNames = [
     "王磊", "陈静", "赵鑫", "黄思雨", "周涛",
     "吴芳", "郑浩然", "冯雪", "褚明哲", "蒋雨桐",
-    "沈逸飞", "韩梅", "杨柳", "朱晓明", "马丽",
     "胡兵", "林黛", "何平", "郭瑞", "蔡琴",
     "潘岳", "董浩", "卢芳", "钱进", "汤唯",
-    "范伟", "彭博", "鲁豫", "韦小宝", "苗苗",
-    "花荣", "任光", "姜华", "姚明", "孟飞",
-    "秦岚", "尹航", "余欢", "邹市", "许晴",
   ];
-  const VIRTUAL_COUNT = 40;
+  const VIRTUAL_COUNT = 20;
   const virtualStudentObjs = [];
   for (let i = 0; i < VIRTUAL_COUNT; i++) {
     const sno = `20232132${String(100 + i)}`;
@@ -134,117 +130,32 @@ async function main() {
   // ─── 80 Courses ──────────────────────────────────
   const courseData: { code: string; name: string; credits: number; college: string; semester: string; desc: string; color: string; teacherIdx: number }[] = [];
 
-  // Computer Science (30 courses)
+    // Computer Science (15 courses)
   const csCourses = [
-    ["CS301","Web前端开发技术",3,"2024-2025-2","HTML/CSS/JS及现代前端框架",0],
-    ["CS302","数据库系统原理",4,"2024-2025-2","关系数据库理论、SQL、设计与优化",1],
-    ["CS303","操作系统",4,"2024-2025-1","进程管理、内存管理、文件系统",1],
-    ["CS304","计算机网络",3,"2024-2025-1","TCP/IP协议栈、路由、传输层",1],
-    ["CS305","软件工程",3,"2024-2025-2","软件开发生命周期管理",0],
-    ["CS306","人工智能导论",3,"2024-2025-2","AI基本概念、搜索、机器学习入门",3],
-    ["CS307","数据结构与算法",4,"2024-2025-1","常用数据结构和经典算法",3],
-    ["CS308","编译原理",3,"2024-2025-2","词法分析、语法分析、代码生成",3],
-    ["CS309","计算机组成原理",4,"2024-2025-1","CPU、存储器、总线与I/O系统",0],
-    ["CS310","Java程序设计",3,"2024-2025-1","面向对象编程、集合框架、多线程",3],
-    ["CS311","Python数据分析",3,"2024-2025-2","Pandas、Matplotlib数据科学",0],
-    ["CS312","Linux系统管理",2,"2024-2025-2","Shell编程、系统管理",3],
-    ["CS313","移动应用开发",3,"2024-2025-2","Android/iOS应用开发基础",0],
-    ["CS314","信息安全概论",3,"2024-2025-2","密码学、网络安全、应用安全",1],
-    ["CS315","云计算技术",3,"2024-2025-1","虚拟化、容器化、云服务架构",3],
-    ["CS316","数据挖掘",3,"2024-2025-2","聚类、分类、关联规则挖掘",1],
-    ["CS317","计算机图形学",3,"2024-2025-1","光照模型、渲染管线、着色器",0],
-    ["CS318","分布式系统",3,"2024-2025-2","分布式一致性、分布式存储",3],
-    ["CS319","软件测试",2,"2024-2025-1","测试方法论、自动化测试框架",1],
-    ["CS320","嵌入式系统",3,"2024-2025-2","单片机、RTOS、传感器接口",0],
-    ["CS321","区块链原理",3,"2024-2025-2","共识算法、智能合约、分布式账本",0],
-    ["CS322","数字图像处理",3,"2024-2025-1","滤波、变换、特征提取",1],
-    ["CS323","模式识别",3,"2024-2025-2","特征工程、分类器设计、聚类",3],
-    ["CS324","虚拟现实技术",2,"2024-2025-1","VR/AR原理、3D渲染、交互设计",0],
-    ["CS325","自然语言处理",3,"2024-2025-2","词法分析、语义理解、大语言模型",1],
-    ["CS326","计算机网络管理",2,"2024-2025-2","网管协议、故障诊断、性能管理",0],
-    ["CS327","并行计算",3,"2024-2025-1","OpenMP、MPI、GPU编程",3],
-    ["CS328","软件项目管理",2,"2024-2025-2","敏捷开发、项目规划、风险管理",1],
-    ["CS329","物联网技术",3,"2024-2025-2","传感器网络、RFID、边缘计算",0],
-    ["CS330","深度学习",3,"2024-2025-2","CNN、RNN、Transformer架构",1],
+    ["CS101","Introduction to Programming",4,"Programming fundamentals in Python",0],
+    ["CS102","Data Structures",4,"Arrays, trees, graphs, hash tables",1],
+    ["CS103","Algorithms",4,"Sorting, searching, dynamic programming",1],
+    ["CS104","Computer Architecture",3,"CPU, memory hierarchy, I/O systems",0],
+    ["CS105","Operating Systems",4,"Process management, memory, file systems",1],
+    ["CS106","Computer Networks",3,"TCP/IP, routing, transport protocols",0],
+    ["CS107","Database Systems",4,"Relational model, SQL, normalization",3],
+    ["CS108","Software Engineering",3,"SDLC, agile, testing, design patterns",0],
+    ["CS109","Web Development",3,"HTML, CSS, JavaScript, React",0],
+    ["CS110","Artificial Intelligence",3,"Search, knowledge, machine learning",3],
+    ["CS111","Machine Learning",3,"Supervised, unsupervised, neural nets",1],
+    ["CS112","Computer Graphics",3,"Lighting, rendering, shaders",0],
+    ["CS113","Cybersecurity",3,"Encryption, network security, threats",3],
+    ["CS114","Distributed Systems",3,"Consensus, replication, consistency",1],
+    ["CS115","Mobile Development",3,"Android, iOS, React Native",0],
   ];
 
-  // Math & Stats (15 courses)
-  const mathCourses = [
-    ["MATH201","高等数学（上）",5,"2024-2025-1","极限、导数、一元微积分",2],
-    ["MATH202","高等数学（下）",5,"2024-2025-2","多元微积分、无穷级数",2],
-    ["MATH203","线性代数",3,"2024-2025-1","向量空间、矩阵理论",2],
-    ["MATH204","概率论与数理统计",4,"2024-2025-2","概率基础、抽样分布、假设检验",2],
-    ["MATH205","离散数学",3,"2024-2025-1","集合论、图论、数理逻辑",2],
-    ["MATH206","数值分析",3,"2024-2025-1","数值逼近、数值积分",2],
-    ["MATH207","数学建模",3,"2024-2025-2","模型构建、优化算法、MATLAB",2],
-    ["MATH208","复变函数",3,"2024-2025-1","复积分、级数、留数定理",2],
-    ["MATH209","常微分方程",3,"2024-2025-2","初值问题、稳定性分析",2],
-    ["MATH210","运筹学",3,"2024-2025-2","线性规划、网络优化、决策分析",2],
-    ["MATH211","抽象代数",3,"2024-2025-1","群论、环论、域论",2],
-    ["MATH212","实变函数",3,"2024-2025-2","测度论、勒贝格积分",2],
-    ["MATH213","拓扑学",3,"2024-2025-1","点集拓扑、连续映射",2],
-    ["MATH214","时间序列分析",3,"2024-2025-2","ARIMA、GARCH、预测",2],
-    ["MATH215","多元统计分析",3,"2024-2025-2","主成分分析、因子分析、聚类",2],
-  ];
-
-  // Foreign Languages (12 courses)
-  const engCourses = [
-    ["ENG201","大学英语（一）",2,"2024-2025-1","英语听、说、读、写综合能力",4],
-    ["ENG202","大学英语（二）",2,"2024-2025-2","四级题型训练、学术英语入门",4],
-    ["ENG203","大学英语（三）",2,"2024-2025-1","学术英语阅读与写作",4],
-    ["ENG204","大学英语（四）",2,"2024-2025-2","六级备考、口语表达提升",4],
-    ["ENG205","商务英语",2,"2024-2025-2","商务场景英语、跨文化交际",4],
-    ["ENG206","英美文学选读",3,"2024-2025-1","经典作品赏析、文学批评入门",4],
-    ["ENG207","翻译理论与实践",2,"2024-2025-2","英汉互译技巧、CAT工具",4],
-    ["ENG208","日语（二外）",2,"2024-2025-1","五十音图、基础语法、日常会话",4],
-    ["ENG209","法语（二外）",2,"2024-2025-2","发音、基础语法、法国文化",4],
-    ["ENG210","英语演讲与辩论",2,"2024-2025-2","演讲技巧、辩论策略、即兴发挥",4],
-    ["ENG211","跨文化交际",2,"2024-2025-1","文化差异、非语言交际、适应策略",4],
-    ["ENG212","英语写作",2,"2024-2025-2","学术写作、邮件写作、报告撰写",4],
-  ];
-
-  // Economics & Management (10 courses)
-  const mgmtCourses = [
-    ["MGMT301","管理学原理",3,"2024-2025-1","管理理论、组织行为、决策分析",5],
-    ["MGMT302","微观经济学",3,"2024-2025-1","供需理论、市场结构、博弈论",5],
-    ["MGMT303","宏观经济学",3,"2024-2025-2","GDP、通货膨胀、货币政策",5],
-    ["MGMT304","会计学基础",3,"2024-2025-2","财务报表、借贷记账、成本核算",5],
-    ["MGMT305","市场营销学",3,"2024-2025-2","营销策略、品牌管理、消费者行为",5],
-    ["MGMT306","人力资源管理",2,"2024-2025-1","招聘、绩效管理、薪酬设计",5],
-    ["MGMT307","财务管理",3,"2024-2025-2","资本预算、融资决策、股利政策",5],
-    ["MGMT308","电子商务",3,"2024-2025-2","电商模式、电子支付、网络营销",5],
-    ["MGMT309","供应链管理",2,"2024-2025-1","采购管理、库存控制、物流规划",5],
-    ["MGMT310","创业管理",2,"2024-2025-2","商业计划书、融资策略、团队组建",5],
-  ];
-
-  // Electronics & Information Engineering (8 courses)
-  const eeCourses = [
-    ["EE401","电路分析基础",3,"2024-2025-1","电路定理、时域分析、频域分析",6],
-    ["EE402","数字电路与逻辑设计",3,"2024-2025-2","组合逻辑、时序逻辑、HDL设计",6],
-    ["EE403","通信原理",4,"2024-2025-2","调制解调、信道编码、信息论",6],
-    ["EE404","信号与系统",3,"2024-2025-1","连续信号、傅里叶变换、拉氏变换",6],
-    ["EE405","电磁场与电磁波",3,"2024-2025-2","麦克斯韦方程、传输线、天线",6],
-    ["EE406","嵌入式系统设计",3,"2024-2025-2","ARM架构、RTOS、设备驱动开发",6],
-    ["EE407","数字信号处理",3,"2024-2025-1","DFT、FFT、数字滤波器设计",6],
-    ["EE408","光纤通信",2,"2024-2025-2","光纤原理、光器件、SDH/WDM",6],
-  ];
-
-  // Humanities (5 courses)
-  const humCourses = [
-    ["HUM501","中国近现代史纲要",2,"2024-2025-1","近代中国历史变迁与经验教训",7],
-    ["HUM502","马克思主义基本原理",3,"2024-2025-2","辩证唯物主义、政治经济学",7],
-    ["HUM503","思想道德与法治",2,"2024-2025-1","社会主义核心价值观、法律基础",7],
-    ["HUM504","大学语文",2,"2024-2025-2","经典文学作品赏析、应用文写作",7],
-    ["HUM505","心理学导论",2,"2024-2025-2","认知、情绪、人格、社会心理学",7],
-  ];
-
-  const allCourseDefs = [...csCourses, ...mathCourses, ...engCourses, ...mgmtCourses, ...eeCourses, ...humCourses];
+const allCourseDefs = [...csCourses];
   const colors = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#06B6D4","#84CC16","#64748B","#1E40AF","#DC2626","#EA580C","#2563EB","#7C3AED","#0891B2","#059669","#0D9488","#F97316","#22D3EE","#F43F5E","#6366F1","#4F46E5","#A3E635","#BEF264","#E11D48","#9333EA","#0284C7","#4F46E5","#C026D3","#65A30D","#0EA5E9","#78716C","#D946EF","#14B8A6","#F97316","#8B5CF6","#3B82F6","#10B981","#F59E0B","#EF4444","#06B6D4","#84CC16","#64748B","#DC2626","#EA580C","#2563EB","#7C3AED","#0891B2","#059669","#0D9488","#F97316","#22D3EE","#F43F5E","#6366F1","#4F46E5","#A3E635","#BEF264","#E11D48","#9333EA","#0284C7","#4F46E5","#C026D3","#65A30D","#0EA5E9","#78716C","#D946EF","#14B8A6","#F97316","#8B5CF6","#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#06B6D4","#84CC16","#64748B","#1E40AF"];
 
   for (let i = 0; i < allCourseDefs.length; i++) {
     const d = allCourseDefs[i];
     courseData.push({
-      code: d[0] as string, name: d[1] as string, credits: d[2] as number, semester: d[3] as string, desc: d[4] as string,
+      code: d[0] as string, name: d[1] as string, credits: d[2] as number, semester: d[3] as string, desc: d[3] as string,
       college: getCollege(d[0] as string), color: colors[i % colors.length], teacherIdx: d[5] as number,
     });
   }
@@ -252,17 +163,14 @@ async function main() {
   const courses = [];
   for (const cd of courseData) {
     courses.push(await prisma.course.create({
-      data: { code: cd.code, name: cd.name, credits: cd.credits, college: cd.college, semester: cd.semester, description: cd.desc || "", coverColor: cd.color },
+      data: { code: cd.code, name: cd.name, credits: cd.credits, college: cd.college, semester: "2024-2025-1", description: cd.desc || "", coverColor: cd.color },
     }));
   }
   console.log(`✅ ${courses.length} courses`);
 
   // ─── Course-Teacher links with virtual teachers ──────────────────
   const virtualTeacherNames = [
-    "张志强", "李晓明", "王芳", "赵建国", "陈伟",
-    "刘洋", "黄丽", "周杰", "吴敏", "郑刚",
-    "钱学军", "孙涛", "朱红", "马超", "胡光",
-    "林海", "何秀英", "郭峰", "蔡明", "潘龙",
+    "马超", "胡光", "林海", "何秀英", "郭峰",
   ];
   // Create virtual teacher User+Teacher records (no login account)
   const virtualTeachers = [];
