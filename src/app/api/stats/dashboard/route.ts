@@ -117,7 +117,6 @@ export async function GET(request: NextRequest) {
           course: { select: { id: true, name: true, code: true, coverColor: true, college: true } },
         },
         orderBy: { createdAt: "desc" },
-        take: 100,
       })
 
       const courses = await prisma.course.findMany({
@@ -185,10 +184,16 @@ export async function GET(request: NextRequest) {
         })
         const dimData: any = {}
         if (evaluations.length > 0) {
-          const avgScores = evaluations.map(e => e.avgScore)
           dimData.overall = {
-            avgScore: Math.round(avgScores.reduce((a: number, b: number) => a + b, 0) / avgScores.length * 100) / 100,
+            avgScore: Math.round(evaluations.reduce((s: number, e: any) => s + e.avgScore, 0) / evaluations.length * 100) / 100,
             evalCount: evaluations.length,
+          }
+          // Add per-dimension averages
+          const fields = ['scoreContent','scoreAttitude','scoreMethod','scoreExam','scoreOverall'] as const
+          for (const f of fields) {
+            dimData[f] = {
+              avgScore: Math.round(evaluations.reduce((s: number, e: any) => s + (e[f] || 0), 0) / evaluations.length * 100) / 100,
+            }
           }
         } else {
           dimData.overall = { avgScore: 0, evalCount: 0 }

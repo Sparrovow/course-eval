@@ -366,10 +366,12 @@ export default function StudentPage() {
               <div className="flex items-center gap-4 mb-4 p-4 bg-blue-50 rounded-xl">
                 <div className="text-center"><p className="text-3xl font-bold text-blue-600">{courseDetailData.avgScore.toFixed(2)}</p><p className="text-xs text-blue-400">综合评分</p></div>
                 <div className="text-center"><p className="text-xl font-semibold text-gray-700">{courseDetailData.evalCount}</p><p className="text-xs text-gray-400">评价人数</p></div>
-                <div className="flex-1 text-right">
-                  {courses.find(c => c.id === showCourseDetail)?.teachers.map(t => (
-                    <span key={t.id} className="text-sm text-blue-600 ml-2">{t.name} {t.title}</span>
-                  ))}
+                <div className="flex-1 grid grid-cols-5 gap-2 text-center">
+                  {["scoreContent","scoreAttitude","scoreMethod","scoreExam","scoreOverall"].map(f => {
+                    const lbl = f==="scoreContent"?"内容":f==="scoreAttitude"?"态度":f==="scoreMethod"?"方法":f==="scoreExam"?"考核":"综合"
+                    const avg = courseDetailData.evals.length>0?Math.round(courseDetailData.evals.reduce((s:number,e:any)=>s+(e[f]||0),0)/courseDetailData.evals.length*100)/100:0
+                    return <div key={f}><p className="text-sm font-bold text-gray-700">{"★".repeat(Math.round(avg))}{"☆".repeat(5-Math.round(avg))}</p><p className="text-xs text-gray-400">{lbl}</p></div>
+                  })}
                 </div>
               </div>
               <h4 className="font-semibold text-gray-900 mb-3">全部评价 ({courseDetailData.evals.length}条)</h4>
