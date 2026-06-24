@@ -306,14 +306,20 @@ export default function AdminPage() {
                     <button onClick={() => setShowDetailModal(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
                   </div>
                   <div className="flex items-center gap-4 mb-4 p-4 bg-blue-50 rounded-xl">
-                    <div className="text-center"><p className="text-3xl font-bold text-blue-600">{detailCourse.dimensions.overall?.avgScore?.toFixed(2) || "-"}</p><p className="text-xs text-blue-400">综合评分</p></div>
-                    <div className="text-center"><p className="text-xl font-semibold text-gray-700">{detailCourse.dimensions.overall?.evalCount || 0}</p><p className="text-xs text-gray-400">评价人数</p></div>
-                    {detailCourse.course.teachers && (
-                      <div className="flex-1 text-right">
-                        <p className="text-xs text-gray-400 mb-1">授课教师</p>
-                        {detailCourse.course.teachers.map(t => <span key={t.id} className="text-sm text-blue-600 ml-2">{t.name} {t.title}</span>)}
-                      </div>
-                    )}
+                    <div className="text-center"><p className="text-3xl font-bold text-blue-600">{(() => { const evals = courseEvals(showDetailModal); return evals.length > 0 ? (evals.reduce((s: number, e: any) => s + e.avgScore, 0) / evals.length).toFixed(2) : "-" })()}</p><p className="text-xs text-blue-400">综合评分</p></div>
+                    <div className="text-center"><p className="text-xl font-semibold text-gray-700">{courseEvals(showDetailModal).length}</p><p className="text-xs text-gray-400">评价人数</p></div>
+                    {(() => {
+                      const evals = courseEvals(showDetailModal);
+                      if (evals.length === 0) return null;
+                      const avgField = (field: string) => (evals.reduce((s: number, e: any) => s + e[field], 0) / evals.length).toFixed(1);
+                      return (
+                        <div className="flex-1 grid grid-cols-5 gap-2 text-center">
+                          {[{k:"scoreContent",l:"内容"},{k:"scoreAttitude",l:"态度"},{k:"scoreMethod",l:"方法"},{k:"scoreExam",l:"考核"},{k:"scoreOverall",l:"综合"}].map(d => (
+                            <div key={d.k}><p className="text-sm font-bold text-gray-700">{"★".repeat(Math.round(Number(avgField(d.k))))}{"☆".repeat(5-Math.round(Number(avgField(d.k))))}</p><p className="text-xs text-gray-400">{d.l}</p></div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <h4 className="font-semibold text-gray-900 mb-3">学生评价 ({courseEvals(showDetailModal).length}条)</h4>
                   {courseEvals(showDetailModal).length === 0 ? (
@@ -343,7 +349,6 @@ export default function AdminPage() {
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="font-semibold text-gray-900">教师管理 ({teacherStats.length}人)</h3>
               <div className="flex items-center gap-3">
-                <button onClick={() => refreshData()} className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-xs hover:bg-gray-50">🔄 刷新数据</button>
                 <span className="text-xs text-gray-400">学院筛选:</span>
                 <select value={teacherCollegeFilter} onChange={e => setTeacherCollegeFilter(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
