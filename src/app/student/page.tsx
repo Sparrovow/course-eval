@@ -28,6 +28,21 @@ export default function StudentPage() {
   const [collegeFilter, setCollegeFilter] = useState("")
   const [showHistory, setShowHistory] = useState(false)
   const [detailEval, setDetailEval] = useState<MyEval | null>(null)
+  const [showCourseDetail, setShowCourseDetail] = useState<number | null>(null)
+  const [courseDetailData, setCourseDetailData] = useState<{ evals: any[]; avgScore: number; evalCount: number } | null>(null)
+
+  const fetchCourseDetail = async (courseId: number) => {
+    const res = await fetch(`/api/stats/dashboard?courseId=${courseId}`)
+    const d = await res.json()
+    if (d.code === 200) {
+      setCourseDetailData({
+        evals: d.data.evaluations || [],
+        avgScore: d.data.courses?.[0]?.dimensions?.overall?.avgScore || 0,
+        evalCount: d.data.courses?.[0]?.dimensions?.overall?.evalCount || 0,
+      })
+    }
+    setShowCourseDetail(courseId)
+  }
 
   useEffect(() => {
     const stored = localStorage.getItem("user")
@@ -232,18 +247,37 @@ export default function StudentPage() {
                             >
                               ✅ 已评价（点此查看）
                             </button>
+                            <button
+                              onClick={() => fetchCourseDetail(course.id)}
+                              className="flex-1 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                            >
+                              📊 课程评价
+                            </button>
                           </>
                         ) : course.isEnrolled ? (
-                          <Link
-                            href={`/student/evaluate/${course.id}`}
-                            className="block flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-lg text-sm font-medium transition-colors"
-                          >
-                            ✏️ 去评价
-                          </Link>
+                          <>
+                            <Link
+                              href={`/student/evaluate/${course.id}`}
+                              className="block flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-lg text-sm font-medium transition-colors"
+                            >
+                              ✏️ 去评价
+                            </Link>
+                            <button
+                              onClick={() => fetchCourseDetail(course.id)}
+                              className="flex-1 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                            >
+                              📊 课程评价
+                            </button>
+                          </>
                         ) : (
-                          <div className="flex-1 py-2 bg-gray-100 text-gray-400 text-center rounded-lg text-sm">
-                            🔒 未选修
-                          </div>
+                          <>
+                            <button
+                              onClick={() => fetchCourseDetail(course.id)}
+                              className="flex-1 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                            >
+                              📊 查看课程评价
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -300,6 +334,52 @@ export default function StudentPage() {
                 </div>
               )}
               <p className="text-xs text-gray-400 mt-4">提交时间: {new Date(detailEval.createdAt).toLocaleString()}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Course Public Detail Modal */}
+        {showCourseDetail && courseDetailData && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowCourseDetail(null)}>
+            <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: courses.find(c => c.id === showCourseDetail)?.coverColor || "#3B82F6" }}>
+                    {courses.find(c => c.id === showCourseDetail)?.name?.[0] || ""}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">{courses.find(c => c.id === showCourseDetail)?.name}</h3>
+                    <p className="text-xs text-gray-400">{courses.find(c => c.id === showCourseDetail)?.code} · {courses.find(c => c.id === showCourseDetail)?.semester}</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowCourseDetail(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+              </div>
+              <div className="flex items-center gap-4 mb-4 p-4 bg-blue-50 rounded-xl">
+                <div className="text-center"><p className="text-3xl font-bold text-blue-600">{courseDetailData.avgScore.toFixed(2)}</p><p className="text-xs text-blue-400">综合评分</p></div>
+                <div className="text-center"><p className="text-xl font-semibold text-gray-700">{courseDetailData.evalCount}</p><p className="text-xs text-gray-400">评价人数</p></div>
+                <div className="flex-1 text-right">
+                  {courses.find(c => c.id === showCourseDetail)?.teachers.map(t => (
+                    <span key={t.id} className="text-sm text-blue-600 ml-2">{t.name} {t.title}</span>
+                  ))}
+                </div>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-3">全部评价 ({courseDetailData.evals.length}条)</h4>
+              {courseDetailData.evals.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-8">该课程暂无评价记录</p>
+              ) : (
+                <div className="space-y-3">
+                  {courseDetailData.evals.map(ev => (
+                    <div key={ev.id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-sm">{ev.student?.name || "匿名"}</span>
+                        <div className="flex items-center gap-1 text-sm"><span className="text-yellow-500">⭐ {ev.avgScore.toFixed(1)}</span><span className="text-xs text-gray-400 ml-2">{new Date(ev.createdAt).toLocaleDateString()}</span></div>
+                      </div>
+                      <div className="flex gap-3 text-xs text-gray-500 mb-1"><span>内容:{ev.scoreContent}</span><span>态度:{ev.scoreAttitude}</span><span>方法:{ev.scoreMethod}</span><span>考核:{ev.scoreExam}</span><span>综合:{ev.scoreOverall}</span></div>
+                      {ev.comment && <p className="text-sm text-gray-700 mt-1">{ev.comment}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

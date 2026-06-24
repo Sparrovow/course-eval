@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import ReactECharts from "echarts-for-react"
 
 interface AdminStats {
   courses: Array<{
-    course: { id: number; code: string; name: string; coverColor: string; college: string }
+    course: { id: number; code: string; name: string; coverColor: string; college: string; teachers?: Array<{ id: number; name: string; title: string }> }
     dimensions: Record<string, { avgScore: number; evalCount: number; scoreDist: Record<number, number> }>
   }>
   evaluations: Array<{
-    id: number; avgScore: number; comment: string | null; createdAt: string
+    id: number; avgScore: number; scoreContent: number; scoreAttitude: number; scoreMethod: number
+    scoreExam: number; scoreOverall: number; comment: string | null; createdAt: string
     student: { id: number; name: string; studentNo: string }
     course: { id: number; name: string; code: string }
   }>
@@ -31,7 +31,11 @@ export default function AdminPage() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [importText, setImportText] = useState("")
   const [importMsg, setImportMsg] = useState("")
+  const [showDetailModal, setShowDetailModal] = useState<number | null>(null)
   const [formData, setFormData] = useState({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6" })
+
+  const courseEvals = (courseId: number) => (stats?.evaluations || []).filter(e => e.course.id === courseId)
+  const detailCourse = stats?.courses.find(c => c.course.id === showDetailModal)
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" })
@@ -130,31 +134,8 @@ export default function AdminPage() {
     <div className="min-h-screen flex items-center justify-center text-gray-500">数据加载失败，请刷新重试</div>
   )
 
-  // All courses ranking bar chart - SORTED by avgScore descending
-  const sortedCourses = [...(stats?.courses || [])].sort((a, b) => {
-    const aScore = a.dimensions.overall?.avgScore || 0
-    const bScore = b.dimensions.overall?.avgScore || 0
-    return bScore - aScore  // descending
-  })
-
-  const rankingOption = {
-    tooltip: { trigger: "axis" as const },
-    grid: { left: 30, right: 50, top: 10, bottom: 30 },
-    xAxis: { type: "value" as const, max: 5, name: "平均分" },
-    yAxis: {
-      type: "category" as const,
-      data: sortedCourses.map(c => `${c.course.code} ${c.course.name}`),
-      axisLabel: { fontSize: 11 },
-    },
-    series: [{
-      type: "bar",
-      data: sortedCourses.map(c => ({
-        value: c.dimensions.overall?.avgScore?.toFixed(2) || 0,
-        itemStyle: { color: c.course.coverColor, borderRadius: [0, 4, 4, 0] },
-      })),
-      label: { show: true, position: "right" as const, fontSize: 11 },
-    }],
-  }
+  // All courses ranking bar chart - SORTED by avgScore descending - REMOVED per user request
+  // const sortedCourses and rankingOption deleted; only per-course cards remain
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -212,20 +193,21 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Course ranking chart */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-              <h3 className="font-semibold text-gray-900 mb-4">课程评价排名</h3>
-              <ReactECharts option={rankingOption} style={{ height: 400 }} />
-            </div>
-
-            {/* Per-course summary cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Course cards overview with click-for-detail */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{/* (ranking chart removed) */}
               {(stats?.courses || []).map(c => (
-                <div key={c.course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div key={c.course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowDetailModal(c.course.id)}>
                   <div className="h-1 w-full rounded-full mb-3" style={{ backgroundColor: c.course.coverColor }} />
                   <p className="text-xs text-gray-400">{c.course.code} · {c.course.college}</p>
-                  <h4 className="font-semibold text-gray-900 mt-0.5 mb-2">{c.course.name}</h4>
-                  <div className="flex items-end justify-between">
+                  <h4 className="font-semibold text-gray-900 mt-0.5 mb-1">{c.course.name}</h4>
+                  {c.course.teachers && c.course.teachers.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {c.course.teachers.map(t => (
+                        <span key={t.id} className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{t.name} {t.title}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-end justify-between mt-2">
                     <div>
                       <p className="text-xs text-gray-500">综合评分</p>
                       <p className="text-2xl font-bold text-gray-900">{c.dimensions.overall?.avgScore?.toFixed(2) || "-"}</p>
@@ -238,6 +220,51 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+
+            {/* Course Detail Modal */}
+            {showDetailModal && detailCourse && (
+              <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowDetailModal(null)}>
+                <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: detailCourse.course.coverColor }}>{detailCourse.course.name[0]}</div>
+                      <div>
+                        <h3 className="font-bold text-lg">{detailCourse.course.name}</h3>
+                        <p className="text-xs text-gray-400">{detailCourse.course.code} · {detailCourse.course.college}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setShowDetailModal(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                  </div>
+                  <div className="flex items-center gap-4 mb-4 p-4 bg-blue-50 rounded-xl">
+                    <div className="text-center"><p className="text-3xl font-bold text-blue-600">{detailCourse.dimensions.overall?.avgScore?.toFixed(2) || "-"}</p><p className="text-xs text-blue-400">综合评分</p></div>
+                    <div className="text-center"><p className="text-xl font-semibold text-gray-700">{detailCourse.dimensions.overall?.evalCount || 0}</p><p className="text-xs text-gray-400">评价人数</p></div>
+                    {detailCourse.course.teachers && (
+                      <div className="flex-1 text-right">
+                        <p className="text-xs text-gray-400 mb-1">授课教师</p>
+                        {detailCourse.course.teachers.map(t => <span key={t.id} className="text-sm text-blue-600 ml-2">{t.name} {t.title}</span>)}
+                      </div>
+                    )}
+                  </div>
+                  <h4 className="font-semibold text-gray-900 mb-3">学生评价 ({courseEvals(showDetailModal).length}条)</h4>
+                  {courseEvals(showDetailModal).length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-8">该课程暂无评价记录</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {courseEvals(showDetailModal).map(ev => (
+                        <div key={ev.id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-sm">{ev.student.name}</span>
+                            <div className="flex items-center gap-1 text-sm"><span className="text-yellow-500">⭐ {ev.avgScore.toFixed(1)}</span><span className="text-xs text-gray-400 ml-2">{new Date(ev.createdAt).toLocaleDateString()}</span></div>
+                          </div>
+                          <div className="flex gap-3 text-xs text-gray-500 mb-1"><span>内容:{ev.scoreContent}</span><span>态度:{ev.scoreAttitude}</span><span>方法:{ev.scoreMethod}</span><span>考核:{ev.scoreExam}</span><span>综合:{ev.scoreOverall}</span></div>
+                          {ev.comment && <p className="text-sm text-gray-700 mt-1">{ev.comment}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -255,13 +282,27 @@ export default function AdminPage() {
                   <h3 className="text-lg font-bold mb-4">添加新课程</h3>
                   <div className="space-y-3">
                     <input placeholder="课程编号 *" value={formData.code} onChange={e => setFormData({ ...formData, code: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <label className="block text-xs text-gray-500 -mt-2 ml-1">课程编号</label>
                     <input placeholder="课程名称 *" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <label className="block text-xs text-gray-500 -mt-2 ml-1">课程名称</label>
                     <div className="flex gap-2">
-                      <input placeholder="学分" type="number" value={formData.credits} onChange={e => setFormData({ ...formData, credits: e.target.value })} className="w-1/3 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                      <input placeholder="学院" value={formData.college} onChange={e => setFormData({ ...formData, college: e.target.value })} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                      <div className="w-1/3">
+                        <input placeholder="学分" type="number" value={formData.credits} onChange={e => setFormData({ ...formData, credits: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        <label className="block text-xs text-gray-500 ml-1">学分</label>
+                      </div>
+                      <div className="flex-1">
+                        <input placeholder="学院" value={formData.college} onChange={e => setFormData({ ...formData, college: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        <label className="block text-xs text-gray-500 ml-1">学院</label>
+                      </div>
                     </div>
-                    <input placeholder="学期 (如 2024-2025-2)" value={formData.semester} onChange={e => setFormData({ ...formData, semester: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                    <textarea placeholder="课程描述" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <div>
+                      <input placeholder="学期 (如 2024-2025-2)" value={formData.semester} onChange={e => setFormData({ ...formData, semester: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                      <label className="block text-xs text-gray-500 ml-1">学期</label>
+                    </div>
+                    <div>
+                      <textarea placeholder="课程描述" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                      <label className="block text-xs text-gray-500 ml-1">课程描述（可选）</label>
+                    </div>
                     <div className="flex gap-2">
                       <button onClick={handleAddCourse} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">创建</button>
                       <button onClick={() => setShowAddModal(false)} className="py-2 px-4 border border-gray-300 rounded-lg text-sm">取消</button>

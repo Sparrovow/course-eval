@@ -138,7 +138,14 @@ export async function GET(request: NextRequest) {
         const avgScore = stats ? Math.round(stats.total / stats.count * 100) / 100 : 0
         const evalCount = stats ? stats.count : 0
         return {
-          course: { id: c.id, code: c.code, name: c.name, coverColor: c.coverColor, college: c.college },
+          course: {
+            id: c.id, code: c.code, name: c.name, coverColor: c.coverColor, college: c.college,
+            teachers: c.courseTeachers.map(ct => ({
+              id: ct.teacher.id,
+              name: ct.teacher.user.name,
+              title: ct.teacher.title,
+            })),
+          },
           dimensions: {
             overall: { avgScore, evalCount },
           },
