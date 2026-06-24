@@ -45,19 +45,18 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left: branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 text-white flex-col justify-center items-center p-12">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white flex-col justify-center items-center p-12">
         <div className="max-w-md text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <FaGraduationCap className="text-5xl text-blue-400" />
-            <h1 className="text-4xl font-bold tracking-tight">EduRate</h1>
+            <FaGraduationCap className="text-5xl" />
+            <h1 className="text-3xl font-bold">全国高校课程评价平台</h1>
           </div>
-          <h2 className="text-xl font-light text-slate-300 mb-2">National University Course Evaluation Platform</h2>
-          <p className="text-sm text-slate-400 mb-8">
-            Multi-dimensional assessment · Data analytics · Visualization
+          <p className="text-lg text-blue-100 mb-8">
+            高校课程评价平台 · 多维评分 · 数据可视化
           </p>
-          <div className="flex gap-4 justify-center text-xs text-slate-500">
-            <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /> System Online</div>
-            <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /> HTTPS Secured</div>
+          <div className="flex gap-4 justify-center text-sm text-blue-200">
+            <div className="flex items-center gap-1"><span className="w-2 h-2 bg-green-400 rounded-full" /> 系统已就绪</div>
+            <div className="flex items-center gap-1"><span className="w-2 h-2 bg-green-400 rounded-full" /> HTTPS加密</div>
           </div>
         </div>
       </div>
@@ -65,9 +64,9 @@ export default function LoginPage() {
       {/* Right: login form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center justify-center gap-2 mb-8 text-slate-800">
-            <FaGraduationCap className="text-3xl text-blue-600" />
-            <h1 className="text-2xl font-bold">EduRate</h1>
+          <div className="lg:hidden flex items-center justify-center gap-2 mb-8 text-blue-600">
+            <FaGraduationCap className="text-3xl" />
+            <h1 className="text-2xl font-bold">全国高校课程评价平台</h1>
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-2">欢迎回来</h2>
