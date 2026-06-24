@@ -225,7 +225,7 @@ const allCourseDefs = [...csCourses];
   for (let i = 0; i < allCourseDefs.length; i++) {
     const d = allCourseDefs[i];
     courseData.push({
-      code: d[0] as string, name: d[1] as string, credits: d[2] as number, semester: d[3] as string, desc: d[3] as string,
+      code: d[0] as string, name: d[1] as string, credits: d[2] as number, semester: d[1] as string, desc: d[3] as string,
       college: getCollege(d[0] as string), color: colors[i % colors.length], teacherIdx: d[5] as number,
     });
   }
@@ -233,7 +233,7 @@ const allCourseDefs = [...csCourses];
   const courses = [];
   for (const cd of courseData) {
     courses.push(await prisma.course.create({
-      data: { code: cd.code, name: cd.name, credits: cd.credits, college: cd.college, semester: "2024-2025-1", description: cd.desc || "", coverColor: cd.color },
+      data: { code: cd.code, name: cd.name, credits: cd.credits, college: getCollege(cd.code), semester: parseInt(cd.code.slice(2))%2===0?"2024-2025-2":"2024-2025-1", description: cd.desc || "", coverColor: cd.color },
     }));
   }
   console.log(`✅ ${courses.length} courses`);
