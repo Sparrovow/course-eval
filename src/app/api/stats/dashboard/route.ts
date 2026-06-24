@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
           student: { select: { id: true, name: true, studentNo: true } },
           course: { select: { id: true, name: true, code: true, coverColor: true } },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { avgScore: "desc" },
       })
 
       // Compute real-time stats per course
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
           student: { select: { id: true, name: true, studentNo: true } },
           course: { select: { id: true, name: true, code: true, coverColor: true, college: true } },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { avgScore: "desc" },
       })
 
       const courses = await prisma.course.findMany({
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
             student: { select: { id: true, name: true, studentNo: true } },
             course: { select: { id: true, name: true, code: true, coverColor: true } },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy: { avgScore: "desc" },
         })
         const course = await prisma.course.findUnique({
           where: { id: courseId },
@@ -218,7 +218,7 @@ export async function GET(request: NextRequest) {
         include: {
           course: { select: { id: true, code: true, name: true, semester: true, coverColor: true } },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { avgScore: "desc" },
       })
 
       return NextResponse.json({
