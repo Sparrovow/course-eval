@@ -29,6 +29,7 @@ export default function TeacherPage() {
   const [selectedCourseIdx, setSelectedCourseIdx] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showComments, setShowComments] = useState(false)
+  const [teacherSearch, setTeacherSearch] = useState("")
 
   useEffect(() => {
     const stored = localStorage.getItem("user")
@@ -160,14 +161,22 @@ export default function TeacherPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-1">留言明细</h2>
             <p className="text-gray-500 mb-6">共 {courseComments.length} 条留言</p>
 
-            {/* Course selector */}
-            <div className="flex gap-2 mb-6 flex-wrap">
-              {data.courses.map((c, i) => (
-                <button key={c.course.id} onClick={() => setSelectedCourseIdx(i)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${i === selectedCourseIdx ? "bg-blue-600 text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
-                  {c.course.code} {c.course.name} ({comments.filter(cm => cm.course.id === c.course.id).length})
-                </button>
-              ))}
+            {/* Course selector with search */}
+            <div className="flex items-center gap-2 mb-6 flex-wrap">
+              <input
+                type="text" placeholder="搜索课程..." value={teacherSearch}
+                onChange={e => setTeacherSearch(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-40"
+              />
+              {data.courses.filter(c => !teacherSearch || c.course.name.includes(teacherSearch) || c.course.code.toLowerCase().includes(teacherSearch.toLowerCase())).map((c, i) => {
+                const origIdx = data.courses.findIndex(d => d.course.id === c.course.id)
+                return (
+                  <button key={c.course.id} onClick={() => setSelectedCourseIdx(origIdx)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${origIdx === selectedCourseIdx ? "bg-blue-600 text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
+                    {c.course.code} {c.course.name} ({comments.filter(cm => cm.course.id === c.course.id).length})
+                  </button>
+                )
+              })}
             </div>
 
             {courseComments.length === 0 ? (
@@ -232,14 +241,22 @@ export default function TeacherPage() {
               ))}
             </div>
 
-            {/* Course selector */}
-            <div className="flex gap-2 mb-6 flex-wrap">
-              {data.courses.map((c, i) => (
-                <button key={c.course.id} onClick={() => setSelectedCourseIdx(i)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${i === selectedCourseIdx ? "bg-blue-600 text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
-                  {c.course.code} {c.course.name}
-                </button>
-              ))}
+            {/* Course selector with search */}
+            <div className="flex items-center gap-2 mb-6 flex-wrap">
+              <input
+                type="text" placeholder="搜索课程..." value={teacherSearch}
+                onChange={e => setTeacherSearch(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-40"
+              />
+              {data.courses.filter(c => !teacherSearch || c.course.name.includes(teacherSearch) || c.course.code.toLowerCase().includes(teacherSearch.toLowerCase())).map((c, i) => {
+                const origIdx = data.courses.findIndex(d => d.course.id === c.course.id)
+                return (
+                  <button key={c.course.id} onClick={() => setSelectedCourseIdx(origIdx)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${origIdx === selectedCourseIdx ? "bg-blue-600 text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
+                    {c.course.code} {c.course.name}
+                  </button>
+                )
+              })}
             </div>
 
             {/* Charts */}
