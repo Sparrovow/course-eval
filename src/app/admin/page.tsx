@@ -17,31 +17,21 @@ interface AdminStats {
   summary: { totalCourses: number; totalEvalCount: number }
 }
 
-interface Course {
+interface CourseItem {
   id: number; code: string; name: string; credits: number; college: string; semester: string; evalCount: number
 }
 
 export default function AdminPage() {
   const router = useRouter()
   const [stats, setStats] = useState<AdminStats | null>(null)
-  const [courses, setCourses] = useState<Course[]>([])
+  const [courses, setCourses] = useState<CourseItem[]>([])
   const [activeTab, setActiveTab] = useState<"dashboard" | "courses" | "evaluations">("dashboard")
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const stored = localStorage.getItem("user")
-    if (!stored) { router.push("/"); return }
-    const user = JSON.parse(stored)
-    if (user.role !== "ADMIN") { router.push("/"); return }
-
-    Promise.all([
-      fetch("/api/stats/dashboard").then(r => r.json()),
-      fetch("/api/courses").then(r => r.json()),
-    ]).then(([statsData, coursesData]) => {
-      if (statsData.code === 200) setStats(statsData.data)
-      if (coursesData.code === 200) setCourses(coursesData.data)
-    }).finally(() => setLoading(false))
-  }, [router])
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importText, setImportText] = useState("")
+  const [importMsg, setImportMsg] = useState("")
+  const [formData, setFormData] = useState({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6" })
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" })
@@ -49,26 +39,112 @@ export default function AdminPage() {
     router.push("/")
   }
 
+  useEffect(() => {
+    const stored = localStorage.getItem("user")
+    if (!stored) { router.push("/"); return }
+    const user = JSON.parse(stored)
+    if (user.role !== "ADMIN") { router.push("/"); return }
+    refreshData()
+  }, [router])
+
+  const refreshData = () => {
+    Promise.all([
+      fetch("/api/stats/dashboard").then(r => r.json()),
+      fetch("/api/courses").then(r => r.json()),
+    ]).then(([statsData, coursesData]) => {
+      if (statsData.code === 200) setStats(statsData.data)
+      if (coursesData.code === 200) setCourses(coursesData.data)
+    })
+  }
+
+  const handleAddCourse = async () => {
+    const res = await fetch("/api/admin/courses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    })
+    const data = await res.json()
+    if (data.code === 200) {
+      setShowAddModal(false)
+      setFormData({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6" })
+      refreshData()
+    } else {
+      alert(data.message || "创建失败")
+    }
+  }
+
+  const handleDeleteCourse = async (courseId: number, courseName: string) => {
+    if (!confirm(`确定删除课程「${courseName}」吗？此操作不可恢复。`)) return
+    const res = await fetch(`/api/admin/courses?id=${courseId}`, { method: "DELETE" })
+    const data = await res.json()
+    if (data.code === 200) {
+      refreshData()
+    } else {
+      alert(data.message || "删除失败")
+    }
+  }
+
+  const handleDeleteEval = async (evalId: number) => {
+    if (!confirm("确定删除该评价记录吗？")) return
+    const res = await fetch(`/api/admin/evaluations?id=${evalId}`, { method: "DELETE" })
+    const data = await res.json()
+    if (data.code === 200) refreshData()
+    else alert(data.message || "删除失败")
+  }
+
+  const handleImportCSV = async () => {
+    setImportMsg("")
+    const lines = importText.trim().split("\n")
+    if (lines.length < 2) { setImportMsg("请输入至少一行表头+一行数据"); return }
+    const errors: string[] = []
+    let successCount = 0
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",")
+      if (cols.length < 5) { errors.push(`行${i + 1}: 列数不足`); continue }
+      const [code, name, credits, college, semester] = cols
+      try {
+        const res = await fetch("/api/admin/courses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: code.trim(), name: name.trim(), credits, college: college.trim(), semester: semester.trim(), description: cols[5]?.trim() || "" }),
+        })
+        const data = await res.json()
+        if (data.code === 200) successCount++
+        else errors.push(`行${i + 1}: ${data.message}`)
+      } catch { errors.push(`行${i + 1}: 网络错误`) }
+    }
+
+    setImportMsg(`导入完成：成功 ${successCount} 条，失败 ${errors.length} 条${errors.length > 0 ? '（' + errors.slice(0, 5).join('; ') + '）' : ''}`)
+    if (successCount > 0) refreshData()
+  }
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
   )
 
-  // All courses ranking bar chart
+  // All courses ranking bar chart - SORTED by avgScore descending
+  const sortedCourses = [...(stats?.courses || [])].sort((a, b) => {
+    const aScore = a.dimensions.overall?.avgScore || 0
+    const bScore = b.dimensions.overall?.avgScore || 0
+    return bScore - aScore  // descending
+  })
+
   const rankingOption = {
     tooltip: { trigger: "axis" as const },
     grid: { left: 30, right: 50, top: 10, bottom: 30 },
     xAxis: { type: "value" as const, max: 5, name: "平均分" },
     yAxis: {
       type: "category" as const,
-      data: (stats?.courses || []).map(c => `${c.course.code} ${c.course.name}`).reverse(),
+      data: sortedCourses.map(c => `${c.course.code} ${c.course.name}`),
       axisLabel: { fontSize: 11 },
     },
     series: [{
       type: "bar",
-      data: (stats?.courses || []).map(c => ({
+      data: sortedCourses.map(c => ({
         value: c.dimensions.overall?.avgScore?.toFixed(2) || 0,
         itemStyle: { color: c.course.coverColor, borderRadius: [0, 4, 4, 0] },
-      })).reverse(),
+      })),
       label: { show: true, position: "right" as const, fontSize: 11 },
     }],
   }
@@ -159,36 +235,86 @@ export default function AdminPage() {
         )}
 
         {activeTab === "courses" && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-semibold text-gray-900">全部课程 ({courses.length})</h3>
-              <span className="text-xs text-gray-400">数据来源于系统预设</span>
+          <div>
+            <div className="flex gap-2 mb-4">
+              <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">+ 添加课程</button>
+              <button onClick={() => setShowImportModal(true)} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">📥 批量导入 CSV</button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="text-left py-3 px-4 font-medium text-gray-500">课程编号</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500">课程名称</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500">学院</th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-500">学分</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500">学期</th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-500">评价数</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {courses.map(c => (
-                    <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-mono text-gray-600">{c.code}</td>
-                      <td className="py-3 px-4 font-medium text-gray-900">{c.name}</td>
-                      <td className="py-3 px-4 text-gray-600">{c.college}</td>
-                      <td className="py-3 px-4 text-center text-gray-600">{c.credits}</td>
-                      <td className="py-3 px-4 text-gray-500">{c.semester}</td>
-                      <td className="py-3 px-4 text-center text-blue-600 font-medium">{c.evalCount}</td>
+
+            {/* Add Course Modal */}
+            {showAddModal && (
+              <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowAddModal(false)}>
+                <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-lg font-bold mb-4">添加新课程</h3>
+                  <div className="space-y-3">
+                    <input placeholder="课程编号 *" value={formData.code} onChange={e => setFormData({ ...formData, code: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <input placeholder="课程名称 *" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <div className="flex gap-2">
+                      <input placeholder="学分" type="number" value={formData.credits} onChange={e => setFormData({ ...formData, credits: e.target.value })} className="w-1/3 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                      <input placeholder="学院" value={formData.college} onChange={e => setFormData({ ...formData, college: e.target.value })} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    </div>
+                    <input placeholder="学期 (如 2024-2025-2)" value={formData.semester} onChange={e => setFormData({ ...formData, semester: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <textarea placeholder="课程描述" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <div className="flex gap-2">
+                      <button onClick={handleAddCourse} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">创建</button>
+                      <button onClick={() => setShowAddModal(false)} className="py-2 px-4 border border-gray-300 rounded-lg text-sm">取消</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Import CSV Modal */}
+            {showImportModal && (
+              <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowImportModal(false)}>
+                <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-lg font-bold mb-2">批量导入课程</h3>
+                  <p className="text-xs text-gray-500 mb-3">粘贴 CSV 数据（格式：编号,名称,学分,学院,学期,描述）。每行一个课程。</p>
+                  <textarea value={importText} onChange={e => setImportText(e.target.value)} rows={6} placeholder="CS401,网络安全基础,3,计算机科学与技术学院,2024-2025-2,学习网络安全核心知识" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
+                  {importMsg && <p className="text-sm text-green-600 mt-2">{importMsg}</p>}
+                  <div className="flex gap-2 mt-3">
+                    <button onClick={handleImportCSV} className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">导入</button>
+                    <button onClick={() => { setShowImportModal(false); setImportText(""); setImportMsg("") }} className="py-2 px-4 border border-gray-300 rounded-lg text-sm">取消</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 className="font-semibold text-gray-900">全部课程 ({courses.length})</h3>
+                <span className="text-xs text-gray-400">数据实时更新</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50">
+                      <th className="text-left py-3 px-4 font-medium text-gray-500">课程编号</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-500">课程名称</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-500">学院</th>
+                      <th className="text-center py-3 px-4 font-medium text-gray-500">学分</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-500">学期</th>
+                      <th className="text-center py-3 px-4 font-medium text-gray-500">评价数</th>
+                      <th className="text-center py-3 px-4 font-medium text-gray-500">操作</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {courses.map(c => (
+                      <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
+                        <td className="py-3 px-4 font-mono text-gray-600">{c.code}</td>
+                        <td className="py-3 px-4 font-medium text-gray-900">{c.name}</td>
+                        <td className="py-3 px-4 text-gray-600">{c.college}</td>
+                        <td className="py-3 px-4 text-center text-gray-600">{c.credits}</td>
+                        <td className="py-3 px-4 text-gray-500">{c.semester}</td>
+                        <td className="py-3 px-4 text-center text-blue-600 font-medium">{c.evalCount}</td>
+                        <td className="py-3 px-4 text-center">
+                          <button onClick={() => handleDeleteCourse(c.id, c.name)} className="text-red-500 hover:text-red-700 text-xs">删除</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -208,9 +334,10 @@ export default function AdminPage() {
                       <span className="text-xs text-gray-300 mx-2">·</span>
                       <span className="text-xs text-blue-600">{e.course.code} {e.course.name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-blue-600">{e.avgScore.toFixed(1)}</span>
                       <span className="text-xs text-gray-400">{new Date(e.createdAt).toLocaleDateString()}</span>
+                      <button onClick={() => handleDeleteEval(e.id)} className="text-red-500 hover:text-red-700 text-xs">删除</button>
                     </div>
                   </div>
                   {e.comment && <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{e.comment}</p>}

@@ -260,13 +260,32 @@ export default function TeacherPage() {
                 <ReactECharts option={trendOption} style={{ height: 280 }} />
               </div>
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="font-semibold text-gray-900 mb-1">评价词云</h3>
-                <p className="text-xs text-gray-400 mb-4">高频关键词分析</p>
-                {wordCloudData.length > 0 ? (
-                  <ReactECharts option={wordCloudOption} style={{ height: 280 }} />
-                ) : (
-                  <div className="h-[280px] flex items-center justify-center text-gray-400 text-sm">暂无足够留言数据生成词云</div>
-                )}
+                <h3 className="font-semibold text-gray-900 mb-1">最近评价记录</h3>
+                <p className="text-xs text-gray-400 mb-4">该课程最新学生评价</p>
+                {(() => {
+                  const recentEvals = (comments || []).filter(c => c.course.id === selected.course.id).slice(0, 5)
+                  if (recentEvals.length === 0) return (
+                    <div className="h-[240px] flex items-center justify-center text-gray-400 text-sm">该课程暂无评价记录</div>
+                  )
+                  return (
+                    <div className="space-y-3 max-h-[260px] overflow-y-auto">
+                      {recentEvals.map(ce => (
+                        <div key={ce.id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-sm text-gray-900">{ce.student.name}</span>
+                            <span className="text-xs text-blue-600 font-semibold">⭐ {ce.avgScore.toFixed(1)}</span>
+                          </div>
+                          {ce.comment ? (
+                            <p className="text-xs text-gray-600 line-clamp-2">{ce.comment}</p>
+                          ) : (
+                            <p className="text-xs text-gray-400 italic">无文字留言</p>
+                          )}
+                          <p className="text-xs text-gray-400 mt-1">{new Date(ce.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
               </div>
             </div>
 

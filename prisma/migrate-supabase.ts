@@ -149,7 +149,26 @@ async function main() {
     { sid: s4, ci: 20, ss: [4,5,4,4,5], cm: "商务英语孙老师口语特别好，课堂轻松有趣，收获很大。" },
   ];
 
-  for (const e of evalEntries) {
+  // Random dates spread across semesters for realism
+  const randomDates = [
+    new Date("2025-04-04T17:00:00Z"), new Date("2025-06-02T14:00:00Z"), new Date("2025-03-06T18:00:00Z"),
+    new Date("2025-05-31T13:00:00Z"), new Date("2025-03-20T17:00:00Z"), new Date("2025-02-16T19:00:00Z"),
+    new Date("2025-03-06T22:00:00Z"), new Date("2025-02-15T15:00:00Z"), new Date("2024-10-31T22:00:00Z"),
+    new Date("2024-09-01T19:00:00Z"), new Date("2024-10-04T16:00:00Z"), new Date("2024-09-21T15:00:00Z"),
+    new Date("2024-10-01T10:00:00Z"), new Date("2024-11-23T11:00:00Z"), new Date("2024-10-19T20:00:00Z"),
+    new Date("2025-05-27T16:00:00Z"), new Date("2025-03-15T11:00:00Z"), new Date("2025-06-10T17:00:00Z"),
+    new Date("2025-02-20T15:00:00Z"), new Date("2025-05-28T21:00:00Z"), new Date("2025-03-28T08:00:00Z"),
+    new Date("2025-03-23T16:00:00Z"), new Date("2025-03-22T15:00:00Z"), new Date("2024-11-29T09:00:00Z"),
+    new Date("2024-10-01T21:00:00Z"), new Date("2025-05-01T22:00:00Z"), new Date("2025-05-26T17:00:00Z"),
+    new Date("2025-05-16T14:00:00Z"), new Date("2024-09-22T22:00:00Z"), new Date("2024-11-08T14:00:00Z"),
+    new Date("2024-12-17T19:00:00Z"), new Date("2025-04-20T20:00:00Z"), new Date("2025-05-30T09:00:00Z"),
+    new Date("2025-04-02T20:00:00Z"), new Date("2025-05-19T11:00:00Z"), new Date("2025-04-03T19:00:00Z"),
+    new Date("2024-12-23T08:00:00Z"), new Date("2025-06-07T21:00:00Z"), new Date("2025-05-11T16:00:00Z"),
+    new Date("2025-06-09T19:00:00Z"), new Date("2025-05-31T18:00:00Z"),
+  ];
+
+  for (let i = 0; i < evalEntries.length; i++) {
+    const e = evalEntries[i];
     const avg = e.ss.reduce((a, b) => a + b, 0) / 5;
     await prisma.evaluation.create({
       data: {
@@ -157,6 +176,7 @@ async function main() {
         scoreContent: e.ss[0], scoreAttitude: e.ss[1], scoreMethod: e.ss[2],
         scoreExam: e.ss[3], scoreOverall: e.ss[4],
         avgScore: Math.round(avg * 100) / 100, comment: e.cm,
+        createdAt: randomDates[i] || undefined,
       },
     });
   }

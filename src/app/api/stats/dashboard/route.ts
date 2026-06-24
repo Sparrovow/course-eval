@@ -2,27 +2,18 @@ import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
+// Real-time stats computed from Evaluation table, not pre-calculated StatsReport
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ code: 401, message: "未登录" }, { status: 401 })
   }
 
-  const url = new URL(request.url)
-  const courseIdStr = url.searchParams.get("courseId")
-
   try {
     if (session.role === "TEACHER") {
-      // Teacher dashboard - all stats for their courses
       const teacher = await prisma.teacher.findUnique({
         where: { userId: session.userId },
-        include: {
-          courseTeachers: {
-            include: {
-              course: true,
-            },
-          },
-        },
+        include: { courseTeachers: { include: { course: true } } },
       })
 
       if (!teacher) {
@@ -30,48 +21,128 @@ export async function GET(request: NextRequest) {
       }
 
       const courseIds = teacher.courseTeachers.map(ct => ct.courseId)
-      const stats = await prisma.statsReport.findMany({
-        where: { courseId: { in: courseIds } },
-        include: { course: { select: { id: true, code: true, name: true, coverColor: true } } },
-      })
 
-      // Build per-course dashboard data
-      const dashboardMap = new Map<number, any>()
-      for (const stat of stats) {
-        if (!dashboardMap.has(stat.courseId)) {
-          dashboardMap.set(stat.courseId, {
-            course: stat.course,
-            dimensions: {} as Record<string, any>,
-          })
-        }
-        dashboardMap.get(stat.courseId)!.dimensions[stat.dimension] = {
-          avgScore: stat.avgScore,
-          median: stat.median,
-          stdDev: stat.stdDev,
-          maxScore: stat.maxScore,
-          minScore: stat.minScore,
-          evalCount: stat.evalCount,
-          scoreDist: JSON.parse(stat.scoreDist),
-          wordCloud: stat.wordCloud ? JSON.parse(stat.wordCloud) : [],
-        }
-      }
-
-      const courseDashboards = Array.from(dashboardMap.values())
-
-      // Total stats across all courses
-      const allOverall = courseDashboards
-        .map(d => d.dimensions.overall)
-        .filter(Boolean)
-      const totalEvalCount = allOverall.reduce((s, d) => s + d.evalCount, 0)
-
-      // Also return evaluation comments for this teacher's courses
+      // Get all evaluations for these courses
       const evaluations = await prisma.evaluation.findMany({
         where: { courseId: { in: courseIds } },
         include: {
           student: { select: { id: true, name: true, studentNo: true } },
-          course: { select: { id: true, name: true, code: true } },
+          course: { select: { id: true, name: true, code: true, coverColor: true } },
         },
         orderBy: { createdAt: "desc" },
+      })
+
+      // Compute real-time stats per course
+      const courseDataMap = new Map<number, {
+        course: { id: number; code: string; name: string; coverColor: string }
+        evals: typeof evaluations
+      }>()
+
+      for (const courseId of courseIds) {
+        const ct = teacher.courseTeachers.find(ct => ct.courseId === courseId)
+        if (ct) {
+          courseDataMap.set(courseId, {
+            course: { id: ct.course.id, code: ct.course.code, name: ct.course.name, coverColor: ct.course.coverColor },
+            evals: [],
+          })
+        }
+      }
+
+      for (const e of evaluations) {
+        const entry = courseDataMap.get(e.course.id)
+        if (entry) entry.evals.push(e)
+      }
+
+      // Build dashboard data
+      const dimKeys = ["content", "attitude", "method", "exam", "overall"] as const
+      const dimLabels: Record<string, string> = { content: "教学内容", attitude: "教学态度", method: "教学方法", exam: "考核方式", overall: "综合满意度" }
+      const dimMap = { content: "scoreContent", attitude: "scoreAttitude", method: "scoreMethod", exam: "scoreExam", overall: "scoreOverall" } as const
+
+      function calcStats(scores: number[]) {
+        const n = scores.length
+        if (n === 0) return { avgScore: 0, median: 0, stdDev: 0, maxScore: 0, minScore: 0, evalCount: 0, scoreDist: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } }
+        const mean = scores.reduce((a, b) => a + b, 0) / n
+        const sorted = [...scores].sort((a, b) => a - b)
+        const m = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)]
+        const vari = scores.reduce((s, v) => s + (v - mean) ** 2, 0) / n
+        const dist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+        for (const s of scores) dist[s] = (dist[s] || 0) + 1
+        return {
+          avgScore: Math.round(mean * 100) / 100,
+          median: Math.round(m * 100) / 100,
+          stdDev: Math.round(Math.sqrt(vari) * 100) / 100,
+          maxScore: Math.max(...scores),
+          minScore: Math.min(...scores),
+          evalCount: n,
+          scoreDist: dist,
+        }
+      }
+
+      const courses = Array.from(courseDataMap.entries()).map(([courseId, data]) => {
+        const evals = data.evals
+        const dimensions: Record<string, any> = {}
+        for (const dim of dimKeys) {
+          const field = dimMap[dim]
+          const scores = evals.map(e => (e as any)[field] as number)
+          dimensions[dim] = { ...calcStats(scores), wordCloud: [] }
+        }
+        return { course: data.course, dimensions }
+      })
+
+      const allOverall = courses.map(c => c.dimensions.overall).filter(d => d.evalCount > 0)
+      const totalEvalCount = evaluations.length
+
+      return NextResponse.json({
+        code: 200,
+        data: {
+          courses,
+          evaluations,
+          summary: {
+            totalCourses: courses.length,
+            totalEvalCount,
+            overallAvg: totalEvalCount > 0
+              ? Math.round(allOverall.reduce((s, d) => s + d.avgScore * d.evalCount, 0) / allOverall.reduce((s, d) => s + d.evalCount, 0) * 100) / 100
+              : 0,
+          },
+        },
+      })
+    }
+
+    if (session.role === "ADMIN") {
+      const evaluations = await prisma.evaluation.findMany({
+        include: {
+          student: { select: { id: true, name: true, studentNo: true } },
+          course: { select: { id: true, name: true, code: true, coverColor: true, college: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      })
+
+      const courses = await prisma.course.findMany({
+        include: {
+          courseTeachers: { include: { teacher: { include: { user: { select: { name: true } } } } } },
+        },
+      })
+
+      // Real-time course stats computed from evaluations
+      const courseEvalMap = new Map<number, { total: number; count: number }>()
+      for (const e of evaluations) {
+        const entry = courseEvalMap.get(e.course.id) || { total: 0, count: 0 }
+        entry.total += e.avgScore
+        entry.count++
+        courseEvalMap.set(e.course.id, entry)
+      }
+
+      const courseDashboards = courses.map(c => {
+        const stats = courseEvalMap.get(c.id)
+        const avgScore = stats ? Math.round(stats.total / stats.count * 100) / 100 : 0
+        const evalCount = stats ? stats.count : 0
+        return {
+          course: { id: c.id, code: c.code, name: c.name, coverColor: c.coverColor, college: c.college },
+          dimensions: {
+            overall: { avgScore, evalCount },
+          },
+        }
       })
 
       return NextResponse.json({
@@ -80,80 +151,13 @@ export async function GET(request: NextRequest) {
           courses: courseDashboards,
           evaluations,
           summary: {
-            totalCourses: courseDashboards.length,
-            totalEvalCount,
-            overallAvg: totalEvalCount > 0
-              ? Math.round(allOverall.reduce((s, d) => s + d.avgScore * d.evalCount, 0) / totalEvalCount * 100) / 100
-              : 0,
+            totalCourses: courses.length,
+            totalEvalCount: evaluations.length,
           },
         },
       })
     }
 
-    if (session.role === "ADMIN") {
-      // Admin - can see all stats or filter by course
-      const whereClause = courseIdStr ? { courseId: parseInt(courseIdStr) } : {}
-      const stats = await prisma.statsReport.findMany({
-        where: whereClause,
-        include: { course: { select: { id: true, code: true, name: true, coverColor: true, college: true } } },
-      })
-
-      const dashboardMap = new Map<number, any>()
-      for (const stat of stats) {
-        if (!dashboardMap.has(stat.courseId)) {
-          dashboardMap.set(stat.courseId, {
-            course: stat.course,
-            dimensions: {} as Record<string, any>,
-          })
-        }
-        dashboardMap.get(stat.courseId)!.dimensions[stat.dimension] = {
-          avgScore: stat.avgScore,
-          median: stat.median,
-          stdDev: stat.stdDev,
-          maxScore: stat.maxScore,
-          minScore: stat.minScore,
-          evalCount: stat.evalCount,
-          scoreDist: JSON.parse(stat.scoreDist),
-          wordCloud: stat.wordCloud ? JSON.parse(stat.wordCloud) : [],
-        }
-      }
-
-      const allCourses = Array.from(dashboardMap.values())
-      const totalEvalCount = allCourses.reduce((s, d) => s + (d.dimensions.overall?.evalCount || 0), 0)
-
-      // Also return all evaluations for admin
-      const evaluations = courseIdStr
-        ? await prisma.evaluation.findMany({
-            where: { courseId: parseInt(courseIdStr) },
-            include: {
-              student: { select: { id: true, name: true, studentNo: true } },
-              course: { select: { id: true, name: true, code: true } },
-            },
-            orderBy: { createdAt: "desc" },
-          })
-        : await prisma.evaluation.findMany({
-            include: {
-              student: { select: { id: true, name: true, studentNo: true } },
-              course: { select: { id: true, name: true, code: true } },
-            },
-            orderBy: { createdAt: "desc" },
-            take: 50,
-          })
-
-      return NextResponse.json({
-        code: 200,
-        data: {
-          courses: allCourses,
-          evaluations,
-          summary: {
-            totalCourses: allCourses.length,
-            totalEvalCount,
-          },
-        },
-      })
-    }
-
-    // Student - can only see their own eval history or a specific course's stats
     if (session.role === "STUDENT") {
       const myEvals = await prisma.evaluation.findMany({
         where: { studentId: session.userId },
@@ -165,9 +169,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         code: 200,
-        data: {
-          myEvaluations: myEvals,
-        },
+        data: { myEvaluations: myEvals },
       })
     }
 
