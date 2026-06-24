@@ -25,7 +25,7 @@ export default function AdminPage() {
   const router = useRouter()
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [courses, setCourses] = useState<CourseItem[]>([])
-  const [activeTab, setActiveTab] = useState<"dashboard" | "teachers" | "courses" | "evaluations">("dashboard")
+  const [activeTab, setActiveTab] = useState<"dashboard" | "teachers" | "courses" | "evaluations" | "logs">("dashboard")
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
@@ -34,6 +34,7 @@ export default function AdminPage() {
   const [showDetailModal, setShowDetailModal] = useState<number | null>(null)
   const [showTeacherModal, setShowTeacherModal] = useState<number | null>(null)
   const [teacherCollegeFilter, setTeacherCollegeFilter] = useState("")
+  const [loginLogs, setLoginLogs] = useState<any[]>([])
   const [formData, setFormData] = useState({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6" })
   const [dashboardCollegeFilter, setDashboardCollegeFilter] = useState("")
 
@@ -126,6 +127,12 @@ export default function AdminPage() {
     else alert(data.message || "删除失败")
   }
 
+  const loadLogs = async () => {
+    const res = await fetch("/api/admin/logs")
+    const data = await res.json()
+    if (data.code === 200) setLoginLogs(data.data)
+  }
+
   const handleImportCSV = async () => {
     setImportMsg("")
     const lines = importText.trim().split("\n")
@@ -191,6 +198,7 @@ export default function AdminPage() {
             { key: "teachers", label: "👨‍🏫 教师管理" },
             { key: "courses", label: "📚 课程管理" },
             { key: "evaluations", label: "💬 评价记录" },
+            { key: "logs", label: "📋 登录日志" },
           ].map(tab => (
             <button
               key={tab.key}
@@ -378,7 +386,7 @@ export default function AdminPage() {
                       <p className="text-sm text-gray-400 text-center py-8">暂无评价</p>
                     ) : (
                       <div className="space-y-3">
-                        {td.comments.slice(0, 20).map((ev: any) => (
+                        {td.comments.map((ev: any) => (
                           <div key={ev.id || Math.random()} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
                             <div className="flex items-center justify-between mb-1">
                               <span className="font-medium text-sm">{ev.student?.name || "匿名"}</span>
@@ -519,6 +527,43 @@ export default function AdminPage() {
                   {e.comment && <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{e.comment}</p>}
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "logs" && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="font-semibold text-gray-900">登录日志 ({loginLogs.length}条)</h3>
+              <button onClick={loadLogs} className="text-xs text-blue-600 hover:text-blue-700">刷新</button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="text-left py-3 px-4 font-medium text-gray-500">时间</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-500">用户</th>
+                    <th className="text-center py-3 px-4 font-medium text-gray-500">角色</th>
+                    <th className="text-center py-3 px-4 font-medium text-gray-500">状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loginLogs.length === 0 ? (
+                    <tr><td colSpan={4} className="py-8 text-center text-gray-400">暂无登录记录</td></tr>
+                  ) : (
+                    loginLogs.map((log: any) => (
+                      <tr key={log.id} className="border-b border-gray-50">
+                        <td className="py-3 px-4 text-gray-600 text-xs">{new Date(log.createdAt).toLocaleString()}</td>
+                        <td className="py-3 px-4 text-gray-900">{log.user?.name || "-"}</td>
+                        <td className="py-3 px-4 text-center text-gray-500">{log.user?.role || "-"}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={log.success ? "text-green-600" : "text-red-500"}>{log.success ? "成功" : "失败"}</span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
