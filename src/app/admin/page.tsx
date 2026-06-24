@@ -37,7 +37,7 @@ export default function AdminPage() {
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false)
   const [teacherForm, setTeacherForm] = useState({ name: "", title: "讲师", college: "计算机科学与技术学院", email: "", password: "123456" })
   const [loginLogs, setLoginLogs] = useState<any[]>([])
-  const [formData, setFormData] = useState({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6" })
+  const [formData, setFormData] = useState({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6", teacherId: "" })
   const [dashboardCollegeFilter, setDashboardCollegeFilter] = useState("")
 
   const colleges = [...new Set(courses.map(c => c.college))].sort()
@@ -112,12 +112,12 @@ export default function AdminPage() {
     const res = await fetch("/api/admin/courses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
+      body: JSON.stringify({ ...formData, teacherIds: formData.teacherId ? [parseInt(formData.teacherId)] : [] }),
     })
     const data = await res.json()
     if (data.code === 200) {
       setShowAddModal(false)
-      setFormData({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6" })
+      setFormData({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6", teacherId: "" })
       refreshData()
     } else {
       alert(data.message || "创建失败")
@@ -499,6 +499,15 @@ export default function AdminPage() {
                     <div>
                       <textarea placeholder="课程描述" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                       <label className="block text-xs text-gray-500 ml-1">课程描述（可选）</label>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 ml-1 mb-1">授课教师 (可选)</label>
+                      <select value={formData.teacherId} onChange={e => setFormData({ ...formData, teacherId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="">不指定教师</option>
+                        {(stats?.courses || []).flatMap(c => c.course.teachers || []).filter((t, i, arr) => arr.findIndex(x => x.id === t.id) === i).slice(0, 30).map(t => (
+                          <option key={t.id} value={t.id}>{t.name} ({t.title || ''})</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="flex gap-2">
                       <button onClick={handleAddCourse} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">创建</button>
