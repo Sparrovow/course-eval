@@ -61,7 +61,7 @@ export default function TeacherPage() {
   const selected = data.courses[selectedCourseIdx]
   const overall = selected?.dimensions.overall
   const dimKeys = ["content", "attitude", "method", "exam", "overall"] as const
-  const dimLabels: Record<string, string> = { content: "Content", attitude: "Attitude", method: "Method", exam: "Exam", overall: "Overall" }
+  const dimLabels: Record<string, string> = { content: "教学内容", attitude: "教学态度", method: "教学方法", exam: "考核方式", overall: "综合满意度" }
 
   // Filter comments for selected course
   const courseComments = comments.filter(c => c.course.id === selected.course.id)

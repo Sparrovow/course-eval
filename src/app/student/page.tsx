@@ -319,11 +319,11 @@ export default function StudentPage() {
               </div>
               <div className="space-y-3 mb-4">
                 {[
-                  { label: "Content", score: detailEval.scoreContent },
-                  { label: "Attitude", score: detailEval.scoreAttitude },
-                  { label: "Method", score: detailEval.scoreMethod },
-                  { label: "Exam", score: detailEval.scoreExam },
-                  { label: "Overall", score: detailEval.scoreOverall },
+                  { label: "教学内容", score: detailEval.scoreContent },
+                  { label: "教学态度", score: detailEval.scoreAttitude },
+                  { label: "教学方法", score: detailEval.scoreMethod },
+                  { label: "考核方式", score: detailEval.scoreExam },
+                  { label: "综合满意度", score: detailEval.scoreOverall },
                 ].map(d => (
                   <div key={d.label} className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">{d.label}</span>
