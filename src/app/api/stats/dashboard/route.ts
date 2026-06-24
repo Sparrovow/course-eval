@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ code: 401, message: "未登录" }, { status: 401 })
   }
+  const url = new URL(request.url)
+  const courseIdStr = url.searchParams.get("courseId")
 
   try {
     if (session.role === "TEACHER") {
@@ -166,6 +168,46 @@ export async function GET(request: NextRequest) {
     }
 
     if (session.role === "STUDENT") {
+      // If courseId is provided, return that course's public evaluations
+      if (courseIdStr) {
+        const courseId = parseInt(courseIdStr)
+        const evaluations = await prisma.evaluation.findMany({
+          where: { courseId },
+          include: {
+            student: { select: { id: true, name: true, studentNo: true } },
+            course: { select: { id: true, name: true, code: true, coverColor: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        })
+        const course = await prisma.course.findUnique({
+          where: { id: courseId },
+          include: { courseTeachers: { include: { teacher: { include: { user: { select: { name: true } } } } } } },
+        })
+        const dimData: any = {}
+        if (evaluations.length > 0) {
+          const avgScores = evaluations.map(e => e.avgScore)
+          dimData.overall = {
+            avgScore: Math.round(avgScores.reduce((a: number, b: number) => a + b, 0) / avgScores.length * 100) / 100,
+            evalCount: evaluations.length,
+          }
+        } else {
+          dimData.overall = { avgScore: 0, evalCount: 0 }
+        }
+        return NextResponse.json({
+          code: 200,
+          data: {
+            courses: course ? [{
+              course: course ? {
+                id: course.id, code: course.code, name: course.name, coverColor: course.coverColor, college: course.college,
+                teachers: course.courseTeachers.map(ct => ({ id: ct.teacher.id, name: ct.teacher.user.name, title: ct.teacher.title })),
+              } : null,
+              dimensions: dimData,
+            }] : [],
+            evaluations,
+          },
+        })
+      }
+
       const myEvals = await prisma.evaluation.findMany({
         where: { studentId: session.userId },
         include: {
