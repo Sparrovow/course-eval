@@ -30,6 +30,7 @@ export default function TeacherPage() {
   const [loading, setLoading] = useState(true)
   const [showComments, setShowComments] = useState(false)
   const [teacherSearch, setTeacherSearch] = useState("")
+  const [teacherCollegeFilter, setTeacherCollegeFilter] = useState("")
 
   useEffect(() => {
     const stored = localStorage.getItem("user")
