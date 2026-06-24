@@ -247,9 +247,9 @@ export default function AdminPage() {
             {/* Summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
-                { label: "课程数量", value: stats?.summary.totalCourses || 0, color: "bg-blue-500" },
-                { label: "评价总数", value: stats?.summary.totalEvalCount || 0, color: "bg-green-500" },
-                { label: "学生总数", value: 44, color: "bg-orange-500" },
+                { label: "总课程数", value: stats?.summary.totalCourses || 0, color: "bg-blue-500" },
+                { label: "累计评价", value: stats?.summary.totalEvalCount || 0, color: "bg-green-500" },
+                { label: "注册学生", value: 44, color: "bg-orange-500" },
               ].map(card => (
                 <div key={card.label} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                   <div className="flex items-center gap-3">
