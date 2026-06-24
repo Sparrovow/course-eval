@@ -48,13 +48,7 @@ function randInt(min: number, max: number) { return Math.floor(Math.random() * (
 function pick<T>(arr: T[]): T { return arr[randInt(0, arr.length - 1)] }
 
 function getCollege(code: string): string {
-  if (code.startsWith("CS")) return "Computer Science";
-  if (code.startsWith("MATH")) return "Mathematics & Statistics";
-  if (code.startsWith("ENG")) return "Foreign Languages & Literature";
-  if (code.startsWith("BUS")) return "Business & Economics";
-  if (code.startsWith("EE")) return "Electronic Engineering";
-  if (code.startsWith("HUM")) return "Humanities & Social Sciences";
-  return "Computer Science";
+  return "计算机科学与技术学院";
 }
 
 
@@ -132,21 +126,21 @@ async function main() {
 
     // Computer Science (15 courses)
   const csCourses = [
-    ["CS101","Introduction to Programming",4,"Programming fundamentals in Python",0],
-    ["CS102","Data Structures",4,"Arrays, trees, graphs, hash tables",1],
-    ["CS103","Algorithms",4,"Sorting, searching, dynamic programming",1],
-    ["CS104","Computer Architecture",3,"CPU, memory hierarchy, I/O systems",0],
-    ["CS105","Operating Systems",4,"Process management, memory, file systems",1],
-    ["CS106","Computer Networks",3,"TCP/IP, routing, transport protocols",0],
-    ["CS107","Database Systems",4,"Relational model, SQL, normalization",3],
-    ["CS108","Software Engineering",3,"SDLC, agile, testing, design patterns",0],
-    ["CS109","Web Development",3,"HTML, CSS, JavaScript, React",0],
-    ["CS110","Artificial Intelligence",3,"Search, knowledge, machine learning",3],
-    ["CS111","Machine Learning",3,"Supervised, unsupervised, neural nets",1],
-    ["CS112","Computer Graphics",3,"Lighting, rendering, shaders",0],
-    ["CS113","Cybersecurity",3,"Encryption, network security, threats",3],
-    ["CS114","Distributed Systems",3,"Consensus, replication, consistency",1],
-    ["CS115","Mobile Development",3,"Android, iOS, React Native",0],
+    ["CS101","计算机科学导论",3,"计算机科学基础知识与编程入门",0],
+    ["CS102","数据结构",4,"数组、树、图、哈希表等经典数据结构",1],
+    ["CS103","算法设计与分析",4,"排序、搜索、动态规划与算法复杂度",1],
+    ["CS104","计算机组成原理",3,"CPU架构、存储器层次、I/O系统",0],
+    ["CS105","操作系统",4,"进程管理、内存管理、文件系统",1],
+    ["CS106","计算机网络",3,"TCP/IP协议栈、路由、传输层协议",0],
+    ["CS107","数据库系统",4,"关系模型、SQL、数据库设计范式",3],
+    ["CS108","软件工程",3,"软件开发生命周期、敏捷方法、测试",0],
+    ["CS109","Web开发技术",3,"HTML、CSS、JavaScript与前端框架",0],
+    ["CS110","人工智能",3,"搜索算法、知识表示、机器学习入门",3],
+    ["CS111","机器学习",3,"监督学习、非监督学习、神经网络",1],
+    ["CS112","计算机图形学",3,"光照模型、渲染管线、着色器编程",0],
+    ["CS113","信息安全",3,"加密技术、网络安全、威胁防护",3],
+    ["CS114","分布式系统",3,"一致性协议、复制机制、分布式存储",1],
+    ["CS115","移动应用开发",3,"Android、iOS、跨平台开发技术",0],
   ];
 
 const allCourseDefs = [...csCourses];
@@ -240,8 +234,8 @@ const allCourseDefs = [...csCourses];
   const evalDates: string[] = [];
   for (let ci = 0; ci < courses.length; ci++) {
     const n = evalCount[ci];
-    const sem = courseData[ci].semester;
-    const range = semDates[sem];
+    const sem = courseData[ci]?.semester || "2024-2025-1";
+    const range = semDates[sem] || semDates["2024-2025-1"];
     const msRange = range.end.getTime() - range.start.getTime();
     for (let j = 0; j < n; j++) {
       const d = new Date(range.start.getTime() + Math.random() * msRange);
@@ -258,7 +252,7 @@ const allCourseDefs = [...csCourses];
       const scores = [Math.min(5,Math.max(1,baseScore+randInt(-1,1))),Math.min(5,Math.max(1,baseScore+randInt(-1,1))),Math.min(5,Math.max(1,baseScore+randInt(-1,1))),Math.min(5,Math.max(1,baseScore+randInt(-1,1))),Math.min(5,Math.max(1,baseScore+randInt(-1,1)))];
       const avg = scores.reduce((a:number,b:number)=>a+b,0)/5;
       const sem = courseData[courseIdx].semester;
-      const range = semDates[sem];
+      const range = semDates[sem] || semDates["2024-2025-1"];
       const ms = range.end.getTime()-range.start.getTime();
       const d = new Date(range.start.getTime()+Math.random()*ms);
       const pool = avg>=4?positiveComments:avg>=3?neutralComments:negativeComments;
