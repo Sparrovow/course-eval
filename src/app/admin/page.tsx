@@ -380,7 +380,6 @@ export default function AdminPage() {
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="font-semibold text-gray-900">教师管理 ({teacherStats.length}人)</h3>
               <div className="flex items-center gap-3">
-                <button onClick={() => setShowAddTeacherModal(true)} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700">+ 新增教师</button>
                 <span className="text-xs text-gray-400">学院筛选:</span>
                 <select value={teacherCollegeFilter} onChange={e => setTeacherCollegeFilter(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
