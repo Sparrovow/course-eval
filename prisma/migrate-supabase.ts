@@ -103,13 +103,20 @@ async function main() {
     testStudentObjs.push(await prisma.user.create({ data: { email: s.email, password: hash, name: s.name, role: "STUDENT", studentNo: s.sno } }));
   }
 
-  // Virtual students (10, no login accounts)
+  // Virtual students (40, no login accounts)
   const virtualStudentNames = [
     "王磊", "陈静", "赵鑫", "黄思雨", "周涛",
     "吴芳", "郑浩然", "冯雪", "褚明哲", "蒋雨桐",
+    "沈逸飞", "韩梅", "杨柳", "朱晓明", "马丽",
+    "胡兵", "林黛", "何平", "郭瑞", "蔡琴",
+    "潘岳", "董浩", "卢芳", "钱进", "汤唯",
+    "范伟", "彭博", "鲁豫", "韦小宝", "苗苗",
+    "花荣", "任光", "姜华", "姚明", "孟飞",
+    "秦岚", "尹航", "余欢", "邹市", "许晴",
   ];
+  const VIRTUAL_COUNT = 40;
   const virtualStudentObjs = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < VIRTUAL_COUNT; i++) {
     const sno = `20232132${String(100 + i)}`;
     virtualStudentObjs.push(await prisma.user.create({
       data: { email: `student${i + 5}@courseeval.com`, password: hash, name: virtualStudentNames[i], role: "STUDENT", studentNo: sno },
@@ -299,39 +306,6 @@ async function main() {
     }
   }
   evalDates.sort(() => Math.random() - 0.5);
-
-  // ─── Also generate 3 preset evals for each test student ───
-  for (const student of testStudentObjs) {
-    for (let k = 0; k < 3; k++) {
-      const courseIdx = randInt(0, courses.length - 1);
-      const baseScore = randInt(3, 5);
-      const scores = [
-        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
-        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
-        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
-        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
-        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
-      ];
-      const avg = scores.reduce((a, b) => a + b, 0) / 5;
-      const sem = courseData[courseIdx].semester;
-      const range = semDates[sem];
-      const ms = range.end.getTime() - range.start.getTime();
-      const d = new Date(range.start.getTime() + Math.random() * ms);
-      const pool = avg >= 4 ? positiveComments : avg >= 3 ? neutralComments : negativeComments;
-      const comment = Math.random() < 0.7 ? pick(pool) : "";
-
-      await prisma.evaluation.create({
-        data: {
-          studentId: student.id, courseId: courses[courseIdx].id,
-          scoreContent: scores[0], scoreAttitude: scores[1], scoreMethod: scores[2],
-          scoreExam: scores[3], scoreOverall: scores[4],
-          avgScore: Math.round(avg * 100) / 100,
-          comment: comment || null,
-          createdAt: d,
-        },
-      }).catch(() => {});
-    }
-  }
 
   let dateIdx = 0;
   for (let ci = 0; ci < courses.length; ci++) {
