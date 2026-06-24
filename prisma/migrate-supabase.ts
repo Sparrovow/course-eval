@@ -257,12 +257,47 @@ async function main() {
   }
   console.log(`✅ ${courses.length} courses`);
 
-  // ─── Course-Teacher links ──────────────────
-  for (let i = 0; i < courseData.length; i++) {
+  // ─── Course-Teacher links with virtual teachers ──────────────────
+  const virtualTeacherNames = [
+    "张志强", "李晓明", "王芳", "赵建国", "陈伟",
+    "刘洋", "黄丽", "周杰", "吴敏", "郑刚",
+    "钱学军", "孙涛", "朱红", "马超", "胡光",
+    "林海", "何秀英", "郭峰", "蔡明", "潘龙",
+  ];
+  // Create virtual teacher User+Teacher records (no login account)
+  const virtualTeachers = [];
+  for (let vi = 0; vi < virtualTeacherNames.length; vi++) {
+    const name = virtualTeacherNames[vi];
+    const u = await prisma.user.create({
+      data: { email: `virtual_t${vi + 1}@courseeval.com`, password: hash, name, role: "TEACHER", teacherNo: `V${2000 + vi}` },
+    });
+    virtualTeachers.push(await prisma.teacher.create({
+      data: { userId: u.id, title: "讲师", college: "计算机科学与技术学院" },
+    }));
+  }
+
+  // Assign teachers to courses: preset teachers get 3-5 each, rest to virtual
+  const allTeachers = [...teachers, ...virtualTeachers];
+  const remainingCourses = [...courses];
+  // First, assign preset teachers 3-5 courses each
+  for (let ti = 0; ti < teachers.length; ti++) {
+    const num = randInt(3, 5);
+    for (let k = 0; k < num && remainingCourses.length > 0; k++) {
+      const idx = randInt(0, remainingCourses.length - 1);
+      const course = remainingCourses.splice(idx, 1)[0];
+      await prisma.courseTeacher.create({
+        data: { courseId: course.id, teacherId: teachers[ti].id },
+      });
+    }
+  }
+  // Assign remaining courses to virtual teachers
+  for (const course of remainingCourses) {
+    const vteacher = virtualTeachers[randInt(0, virtualTeachers.length - 1)];
     await prisma.courseTeacher.create({
-      data: { courseId: courses[i].id, teacherId: teachers[courseData[i].teacherIdx].id },
+      data: { courseId: course.id, teacherId: vteacher.id },
     });
   }
+  console.log(`✅ ${virtualTeachers.length} virtual teachers created`);
 
   // ─── Enrollments: test students enrolled in 8-15 courses, virtual students 6-12 ───
   for (const student of testStudentObjs) {
