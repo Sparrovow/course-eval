@@ -24,6 +24,16 @@ export async function POST(request: NextRequest) {
 
     const token = await signToken({ userId: user.id, role: user.role })
 
+    // Record successful login
+    await prisma.loginLog.create({
+      data: {
+        userId: user.id,
+        ip: request.headers.get("x-forwarded-for") || "",
+        userAgent: request.headers.get("user-agent") || "",
+        success: true,
+      },
+    })
+
     const response = NextResponse.json({
       code: 200,
       message: "登录成功",
