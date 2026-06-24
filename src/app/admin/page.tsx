@@ -25,7 +25,7 @@ export default function AdminPage() {
   const router = useRouter()
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [courses, setCourses] = useState<CourseItem[]>([])
-  const [activeTab, setActiveTab] = useState<"dashboard" | "teachers" | "courses" | "evaluations" | "logs">("dashboard")
+  const [activeTab, setActiveTab] = useState<"dashboard" | "teachers" | "courses" | "evaluations">("dashboard")
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
@@ -230,7 +230,6 @@ export default function AdminPage() {
             { key: "teachers", label: "👨‍🏫 教师管理" },
             { key: "courses", label: "📚 课程管理" },
             { key: "evaluations", label: "💬 评价记录" },
-            { key: "logs", label: "📋 登录日志" },
           ].map(tab => (
             <button
               key={tab.key}
@@ -597,44 +596,6 @@ export default function AdminPage() {
                   {e.comment && <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{e.comment}</p>}
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === "logs" && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-semibold text-gray-900">登录日志 ({loginLogs.length}条)</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="text-left py-3 px-3 font-medium text-gray-500">时间</th>
-                    <th className="text-left py-3 px-3 font-medium text-gray-500">用户</th>
-                    <th className="text-center py-3 px-3 font-medium text-gray-500">角色</th>
-                    <th className="text-left py-3 px-3 font-medium text-gray-500">IP地址</th>
-                    <th className="text-center py-3 px-3 font-medium text-gray-500">状态</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loginLogs.length === 0 ? (
-                    <tr><td colSpan={5} className="py-8 text-center text-gray-400">暂无登录记录</td></tr>
-                  ) : (
-                    loginLogs.map((log: any) => (
-                      <tr key={log.id} className="border-b border-gray-50">
-                        <td className="py-3 px-3 text-gray-600 text-xs">{new Date(log.createdAt).toLocaleString()}</td>
-                        <td className="py-3 px-3 text-gray-900">{log.user?.name || "-"}</td>
-                        <td className="py-3 px-3 text-center text-gray-500">{log.user?.role || "-"}</td>
-                        <td className="py-3 px-3 text-gray-500 text-xs font-mono">{log.ip || "-"}</td>
-                        <td className="py-3 px-3 text-center">
-                          <span className={log.success ? "text-green-600" : "text-red-500"}>{log.success ? "成功" : "失败"}</span>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
             </div>
           </div>
         )}
