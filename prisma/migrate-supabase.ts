@@ -273,7 +273,8 @@ async function main() {
     }
   }
 
-  // ─── Evaluations: each course gets 8-12 ratings, ~30% have comments ───
+  // ─── Evaluations: each course gets 8-12 ratings from VIRTUAL STUDENTS ONLY, ~30% have comments ───
+  // Test students have NO pre-generated evaluations - they submit their own
   const evalCount = [];
   for (let ci = 0; ci < courses.length; ci++) {
     const n = randInt(8, 12);
@@ -287,7 +288,6 @@ async function main() {
   };
 
   const evalDates: string[] = [];
-  // Generate eval dates for each course
   for (let ci = 0; ci < courses.length; ci++) {
     const n = evalCount[ci];
     const sem = courseData[ci].semester;
@@ -298,14 +298,14 @@ async function main() {
       evalDates.push(d.toISOString());
     }
   }
-  evalDates.sort(() => Math.random() - 0.5); // shuffle
+  evalDates.sort(() => Math.random() - 0.5);
 
   let dateIdx = 0;
   for (let ci = 0; ci < courses.length; ci++) {
     const n = evalCount[ci];
-    // Pick n students (prefer enrolled students for this course)
-    const allStudentsPool = [...allStudents].sort(() => Math.random() - 0.5);
-    const participants = allStudentsPool.slice(0, n);
+    // Use ONLY virtual students for pre-generated evaluations
+    const vPool = [...virtualStudentObjs].sort(() => Math.random() - 0.5);
+    const participants = vPool.slice(0, Math.min(n, vPool.length));
 
     for (const student of participants) {
       const baseScore = randInt(2, 5);

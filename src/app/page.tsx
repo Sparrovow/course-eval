@@ -111,7 +111,7 @@ export default function LoginPage() {
                 <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                 记住我
               </label>
-              <a href="#" className="text-blue-600 hover:text-blue-700">忘记密码？</a>
+              <button type="button" onClick={() => setError("请联系管理员重置密码")} className="text-blue-600 hover:text-blue-700">忘记密码？</button>
             </div>
 
             {/* Error */}
@@ -144,13 +144,13 @@ export default function LoginPage() {
           {/* Social login */}
           <div className="flex gap-3">
             <button onClick={() => setError("第三方登录暂未开通")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
-              <FaWeixin className="text-green-500" /> 微信
+              <FaWeixin className="text-green-500" /> 微信登录
             </button>
             <button onClick={() => setError("第三方登录暂未开通")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
-              <FaQq className="text-blue-500" /> QQ
+              <FaQq className="text-blue-500" /> QQ登录
             </button>
             <button onClick={() => setError("第三方登录暂未开通")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
-              <FaGithub className="text-gray-800" /> GitHub
+              <FaGithub className="text-gray-800" /> GitHub登录
             </button>
           </div>
         </div>

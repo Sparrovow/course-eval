@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 
 interface AdminStats {
   courses: Array<{
-    course: { id: number; code: string; name: string; coverColor: string; college: string; teachers?: Array<{ id: number; name: string; title: string }> }
+    course: { id: number; code: string; name: string; coverColor: string; college: string; teachers?: Array<{ id: number; name: string; title: string; college?: string }> }
     dimensions: Record<string, { avgScore: number; evalCount: number; scoreDist: Record<number, number> }>
   }>
   evaluations: Array<{
@@ -25,17 +25,44 @@ export default function AdminPage() {
   const router = useRouter()
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [courses, setCourses] = useState<CourseItem[]>([])
-  const [activeTab, setActiveTab] = useState<"dashboard" | "courses" | "evaluations">("dashboard")
+  const [activeTab, setActiveTab] = useState<"dashboard" | "teachers" | "courses" | "evaluations">("dashboard")
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [importText, setImportText] = useState("")
   const [importMsg, setImportMsg] = useState("")
   const [showDetailModal, setShowDetailModal] = useState<number | null>(null)
+  const [showTeacherModal, setShowTeacherModal] = useState<number | null>(null)
+  const [teacherCollegeFilter, setTeacherCollegeFilter] = useState("")
   const [formData, setFormData] = useState({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6" })
   const [dashboardCollegeFilter, setDashboardCollegeFilter] = useState("")
 
   const colleges = [...new Set(courses.map(c => c.college))].sort()
+
+  // Build teacher stats from evaluations
+  const teacherStats = (() => {
+    const map = new Map<number, { teacher: { id: number; name: string; title: string; college: string }; courseIds: Set<number>; totalScore: number; evalCount: number; comments: any[] }>()
+    if (!stats?.evaluations) return []
+    for (const ev of (stats.evaluations || [])) {
+      const cd = (stats.courses || []).find(c => c.course.id === ev.course.id)
+      const teachers = (cd?.course?.teachers || []).map(t => ({ ...t, college: cd?.course?.college || '' }))
+      for (const t of teachers) {
+        if (!map.has(t.id)) {
+          map.set(t.id, { teacher: t, courseIds: new Set(), totalScore: 0, evalCount: 0, comments: [] })
+        }
+        const entry = map.get(t.id)!
+        entry.courseIds.add(ev.course.id)
+        entry.totalScore += ev.avgScore
+        entry.evalCount++
+        entry.comments.push(ev)
+      }
+    }
+    return Array.from(map.values()).map(e => ({
+      ...e,
+      avgScore: e.evalCount > 0 ? Math.round(e.totalScore / e.evalCount * 100) / 100 : 0,
+      courseCount: e.courseIds.size,
+    }))
+  })()
 
   const courseEvals = (courseId: number) => (stats?.evaluations || []).filter(e => e.course.id === courseId)
   const detailCourse = stats?.courses.find(c => c.course.id === showDetailModal)
@@ -161,6 +188,7 @@ export default function AdminPage() {
         <div className="flex gap-2 mb-8 bg-white rounded-xl p-1 shadow-sm border border-gray-200 w-fit">
           {[
             { key: "dashboard", label: "📊 数据概览" },
+            { key: "teachers", label: "👨‍🏫 教师管理" },
             { key: "courses", label: "📚 课程管理" },
             { key: "evaluations", label: "💬 评价记录" },
           ].map(tab => (
@@ -281,6 +309,92 @@ export default function AdminPage() {
               </div>
             )}
           </>
+        )}
+
+        {activeTab === "teachers" && (
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <span className="text-sm text-gray-500">学院筛选:</span>
+              <select value={teacherCollegeFilter} onChange={e => setTeacherCollegeFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                <option value="">全部学院</option>
+                {colleges.map(col => <option key={col} value={col}>{col}</option>)}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {teacherStats.filter(t => !teacherCollegeFilter || t.teacher.college === teacherCollegeFilter).map(t => (
+                <div key={t.teacher.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowTeacherModal(t.teacher.id)}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
+                      {t.teacher.name[0]}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{t.teacher.name}</h4>
+                      <p className="text-xs text-gray-400">{t.teacher.title} · {t.teacher.college}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <p className="text-xl font-bold text-gray-900">{t.courseCount}</p>
+                      <p className="text-xs text-gray-400">教授课程</p>
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold text-gray-900">{t.evalCount}</p>
+                      <p className="text-xs text-gray-400">评价数</p>
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold text-blue-600">{t.avgScore.toFixed(1)}</p>
+                      <p className="text-xs text-gray-400">平均分</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Teacher Detail Modal */}
+            {showTeacherModal && (() => {
+              const td = teacherStats.find(t => t.teacher.id === showTeacherModal)
+              if (!td) return null
+              return (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowTeacherModal(null)}>
+                  <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">{td.teacher.name[0]}</div>
+                        <div>
+                          <h3 className="font-bold text-lg">{td.teacher.name}</h3>
+                          <p className="text-xs text-gray-400">{td.teacher.title} · {td.teacher.college}</p>
+                        </div>
+                      </div>
+                      <button onClick={() => setShowTeacherModal(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                    </div>
+                    <div className="flex items-center gap-4 mb-4 p-4 bg-blue-50 rounded-xl">
+                      <div className="text-center"><p className="text-2xl font-bold text-blue-600">{td.courseCount}</p><p className="text-xs text-blue-400">教授课程</p></div>
+                      <div className="text-center"><p className="text-xl font-semibold text-gray-700">{td.evalCount}</p><p className="text-xs text-gray-400">评价总数</p></div>
+                      <div className="text-center"><p className="text-2xl font-bold text-blue-600">{td.avgScore.toFixed(1)}</p><p className="text-xs text-blue-400">综合平均分</p></div>
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-3">评价记录</h4>
+                    {td.comments.length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-8">暂无评价</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {td.comments.slice(0, 20).map((ev: any) => (
+                          <div key={ev.id || Math.random()} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-medium text-sm">{ev.student?.name || "匿名"}</span>
+                              <span className="text-xs text-gray-400">{ev.course?.code} {ev.course?.name} · ⭐{ev.avgScore?.toFixed(1)}</span>
+                            </div>
+                            {ev.comment && <p className="text-sm text-gray-700 mt-1">{ev.comment}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
         )}
 
         {activeTab === "courses" && (
