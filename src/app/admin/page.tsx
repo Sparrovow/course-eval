@@ -54,7 +54,7 @@ export default function AdminPage() {
     ]).then(([statsData, coursesData]) => {
       if (statsData.code === 200) setStats(statsData.data)
       if (coursesData.code === 200) setCourses(coursesData.data)
-    })
+    }).finally(() => setLoading(false))
   }
 
   const handleAddCourse = async () => {
@@ -120,7 +120,14 @@ export default function AdminPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
+    <div className="min-h-screen flex items-center justify-center"><div className="text-center">
+      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+      <div className="text-sm text-gray-500">加载中...</div>
+    </div></div>
+  )
+
+  if (!stats || !courses) return (
+    <div className="min-h-screen flex items-center justify-center text-gray-500">数据加载失败，请刷新重试</div>
   )
 
   // All courses ranking bar chart - SORTED by avgScore descending
