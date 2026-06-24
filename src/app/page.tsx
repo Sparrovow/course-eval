@@ -33,10 +33,10 @@ export default function LoginPage() {
         else if (role === "TEACHER") router.push("/teacher")
         else if (role === "ADMIN") router.push("/admin")
       } else {
-        setError(data.message || "Login failed")
+        setError(data.message || "登录失败")
       }
     } catch {
-      setError("Network error, please retry")
+      setError("网络错误，请稍后重试")
     } finally {
       setLoading(false)
     }
@@ -70,20 +70,20 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold">EduRate</h1>
           </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
-          <p className="text-gray-500 mb-8">Sign in to your account to continue</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">欢迎回来</h2>
+          <p className="text-gray-500 mb-8">请输入您的账号信息登录系统</p>
 
           <form onSubmit={handleLogin} className="space-y-5">
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">邮箱地址</label>
               <div className="relative">
                 <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="Enter email address"
+                  placeholder="请输入邮箱"
                   required
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                 />
@@ -92,14 +92,14 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
               <div className="relative">
                 <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Enter password"
+                  placeholder="请输入密码"
                   required
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                 />
@@ -110,9 +110,9 @@ export default function LoginPage() {
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 text-gray-500">
                 <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                Remember me
+                记住我
               </label>
-              <button type="button" onClick={() => setError("Please contact administrator to reset password")} className="text-blue-600 hover:text-blue-700">Forgot password?</button>
+              <button type="button" onClick={() => setError("请联系管理员重置密码")} className="text-blue-600 hover:text-blue-700">忘记密码？</button>
             </div>
 
             {/* Error */}
@@ -128,7 +128,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "登录中..." : "登 录"}
             </button>
           </form>
 
@@ -138,19 +138,19 @@ export default function LoginPage() {
               <div className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-400">Or continue with</span>
+              <span className="px-4 bg-white text-gray-400">第三方登录</span>
             </div>
           </div>
 
           {/* Social login */}
           <div className="flex gap-3">
-            <button onClick={() => setError("Third-party login not available")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
+            <button onClick={() => setError("第三方登录暂未开通")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
               <FaWeixin className="text-green-500" /> 微信登录
             </button>
-            <button onClick={() => setError("Third-party login not available")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
+            <button onClick={() => setError("第三方登录暂未开通")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
               <FaQq className="text-blue-500" /> QQ登录
             </button>
-            <button onClick={() => setError("Third-party login not available")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
+            <button onClick={() => setError("第三方登录暂未开通")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
               <FaGithub className="text-gray-800" /> GitHub登录
             </button>
           </div>
