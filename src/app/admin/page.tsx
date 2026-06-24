@@ -42,22 +42,35 @@ export default function AdminPage() {
 
   const colleges = [...new Set(courses.map(c => c.college))].sort()
 
-  // Build teacher stats from evaluations
+  // Build teacher stats from ALL teachers (not just those with evals)
   const teacherStats = (() => {
     const map = new Map<number, { teacher: { id: number; name: string; title: string; college: string }; courseIds: Set<number>; totalScore: number; evalCount: number; comments: any[] }>()
-    if (!stats?.evaluations) return []
-    for (const ev of (stats.evaluations || [])) {
-      const cd = (stats.courses || []).find(c => c.course.id === ev.course.id)
-      const teachers = (cd?.course?.teachers || []).map(t => ({ ...t, college: cd?.course?.college || '' }))
-      for (const t of teachers) {
-        if (!map.has(t.id)) {
-          map.set(t.id, { teacher: t, courseIds: new Set(), totalScore: 0, evalCount: 0, comments: [] })
+    // First, initialize from all courses (ensures all teachers are present)
+    if (stats?.courses) {
+      for (const cd of stats.courses) {
+        const teachers = cd.course?.teachers || []
+        for (const t of teachers) {
+          if (!map.has(t.id)) {
+            map.set(t.id, { teacher: { ...t, college: cd.course?.college || '' }, courseIds: new Set(), totalScore: 0, evalCount: 0, comments: [] })
+          }
+          map.get(t.id)!.courseIds.add(cd.course.id)
         }
-        const entry = map.get(t.id)!
-        entry.courseIds.add(ev.course.id)
-        entry.totalScore += ev.avgScore
-        entry.evalCount++
-        entry.comments.push(ev)
+      }
+    }
+    // Then add evaluation data
+    if (stats?.evaluations) {
+      for (const ev of stats.evaluations) {
+        const cd = (stats.courses || []).find(c => c.course.id === ev.course.id)
+        const teachers = (cd?.course?.teachers || []).map(t => ({ ...t, college: cd?.course?.college || '' }))
+        for (const t of teachers) {
+          if (!map.has(t.id)) {
+            map.set(t.id, { teacher: t, courseIds: new Set(), totalScore: 0, evalCount: 0, comments: [] })
+          }
+          const entry = map.get(t.id)!
+          entry.totalScore += ev.avgScore
+          entry.evalCount++
+          entry.comments.push(ev)
+        }
       }
     }
     return Array.from(map.values()).map(e => ({
