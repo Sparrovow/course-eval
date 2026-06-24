@@ -276,33 +276,51 @@ export default function AdminPage() {
               </select>
             </div>
 
-            {/* Course cards overview with click-for-detail */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{/* (ranking chart removed) */}
-              {(stats?.courses || []).filter(c => !dashboardCollegeFilter || c.course.college === dashboardCollegeFilter).map(c => (
-                <div key={c.course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowDetailModal(c.course.id)}>
-                  <div className="h-1 w-full rounded-full mb-3" style={{ backgroundColor: c.course.coverColor }} />
-                  <p className="text-xs text-gray-400">{c.course.code} · {c.course.college}</p>
-                  <h4 className="font-semibold text-gray-900 mt-0.5 mb-1">{c.course.name}</h4>
-                  {c.course.teachers && c.course.teachers.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {c.course.teachers.map(t => (
-                        <span key={t.id} className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{t.name} {t.title}</span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex items-end justify-between mt-2">
-                    <div>
-                      <p className="text-xs text-gray-500">综合评分</p>
-                      <p className="text-2xl font-bold text-gray-900">{c.dimensions.overall?.avgScore?.toFixed(2) || "-"}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">评价数</p>
-                      <p className="text-lg font-semibold text-gray-700">{c.dimensions.overall?.evalCount || 0}</p>
-                    </div>
+            {/* Course cards overview grouped by college */}
+            {(() => {
+              const filteredCourses = (stats?.courses || []).filter(c => !dashboardCollegeFilter || c.course.college === dashboardCollegeFilter)
+              const grouped = new Map<string, typeof filteredCourses>()
+              for (const c of filteredCourses) {
+                const key = c.course.college
+                if (!grouped.has(key)) grouped.set(key, [])
+                grouped.get(key)!.push(c)
+              }
+              // Sort each group by avgScore descending
+              for (const [key, arr] of grouped) {
+                arr.sort((a, b) => (b.dimensions.overall?.avgScore || 0) - (a.dimensions.overall?.avgScore || 0))
+              }
+              return Array.from(grouped.entries()).map(([college, items]) => (
+                <div key={college} className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-500 mb-3 border-b pb-2">{college} ({items.length}门)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {items.map(c => (
+                      <div key={c.course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowDetailModal(c.course.id)}>
+                        <div className="h-1 w-full rounded-full mb-2" style={{ backgroundColor: c.course.coverColor }} />
+                        <p className="text-xs text-gray-400">{c.course.code} · {c.course.college}</p>
+                        <h4 className="font-semibold text-gray-900 mt-0.5 mb-1 text-sm">{c.course.name}</h4>
+                        {c.course.teachers && c.course.teachers.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {c.course.teachers.map(t => (
+                              <span key={t.id} className="text-[10px] bg-blue-50 text-blue-600 px-1 py-0.5 rounded">{t.name} {t.title}</span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-end justify-between mt-1">
+                          <div>
+                            <p className="text-[10px] text-gray-500">综合评分</p>
+                            <p className="text-lg font-bold text-gray-900">{c.dimensions.overall?.avgScore?.toFixed(2) || "-"}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] text-gray-500">评价数</p>
+                            <p className="text-sm font-semibold text-gray-700">{c.dimensions.overall?.evalCount || 0}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+              ))
+            })()}
 
             {/* Course Detail Modal */}
             {showDetailModal && detailCourse && (
