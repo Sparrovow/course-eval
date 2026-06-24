@@ -181,8 +181,7 @@ export default function AdminPage() {
               {[
                 { label: "课程总数", value: stats?.summary.totalCourses || 0, color: "bg-blue-500" },
                 { label: "评价总数", value: stats?.summary.totalEvalCount || 0, color: "bg-green-500" },
-                { label: "评价覆盖率", value: `${(stats?.summary.totalEvalCount || 0) * 5}%`, color: "bg-purple-500" },
-                { label: "学生人数", value: 3, color: "bg-orange-500" },
+                { label: "学生人数", value: 14, color: "bg-orange-500" },
               ].map(card => (
                 <div key={card.label} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                   <div className="flex items-center gap-3">

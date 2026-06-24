@@ -257,19 +257,26 @@ async function main() {
     });
   }
 
-  // ─── Enrollments: each student enrolled in 45-55 courses ───
-  for (const student of allStudents) {
-    const numEnrolled = randInt(45, 55);
+  // ─── Enrollments: test students enrolled in 8-15 courses, virtual students 6-12 ───
+  for (const student of testStudentObjs) {
+    const numEnrolled = randInt(8, 15);
+    const shuffled = [...courses].sort(() => Math.random() - 0.5);
+    for (let j = 0; j < numEnrolled; j++) {
+      await prisma.enrollment.create({ data: { studentId: student.id, courseId: shuffled[j].id } });
+    }
+  }
+  for (const student of virtualStudentObjs) {
+    const numEnrolled = randInt(6, 12);
     const shuffled = [...courses].sort(() => Math.random() - 0.5);
     for (let j = 0; j < numEnrolled; j++) {
       await prisma.enrollment.create({ data: { studentId: student.id, courseId: shuffled[j].id } });
     }
   }
 
-  // ─── Evaluations: each course gets 6-10 evals with staggered dates ───
+  // ─── Evaluations: each course gets 8-12 ratings, ~30% have comments ───
   const evalCount = [];
   for (let ci = 0; ci < courses.length; ci++) {
-    const n = randInt(6, 12);
+    const n = randInt(8, 12);
     evalCount.push(n);
   }
 
@@ -296,13 +303,11 @@ async function main() {
   let dateIdx = 0;
   for (let ci = 0; ci < courses.length; ci++) {
     const n = evalCount[ci];
-    // Pick n random students enrolled in this course
-    const enrolledStudents = allStudents.filter(() => Math.random() < 0.5);
-    const shuffled = [...enrolledStudents].sort(() => Math.random() - 0.5);
-    const participants = shuffled.slice(0, n);
+    // Pick n students (prefer enrolled students for this course)
+    const allStudentsPool = [...allStudents].sort(() => Math.random() - 0.5);
+    const participants = allStudentsPool.slice(0, n);
 
     for (const student of participants) {
-      // Generate somewhat realistic scores
       const baseScore = randInt(2, 5);
       const scores = [
         Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
@@ -313,9 +318,9 @@ async function main() {
       ];
       const avg = scores.reduce((a, b) => a + b, 0) / 5;
 
-      // Comments: only ~60% of evals have text
+      // Comments: only ~30% of evals have text (most students just rate)
       let comment = "";
-      if (Math.random() < 0.6) {
+      if (Math.random() < 0.3) {
         const pool = avg >= 4 ? positiveComments : avg >= 3 ? neutralComments : negativeComments;
         comment = pick(pool);
       }
