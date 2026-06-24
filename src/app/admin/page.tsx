@@ -312,44 +312,43 @@ export default function AdminPage() {
         )}
 
         {activeTab === "teachers" && (
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <span className="text-sm text-gray-500">学院筛选:</span>
-              <select value={teacherCollegeFilter} onChange={e => setTeacherCollegeFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="">全部学院</option>
-                {colleges.map(col => <option key={col} value={col}>{col}</option>)}
-              </select>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="font-semibold text-gray-900">教师管理 ({teacherStats.length}人)</h3>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-400">学院筛选:</span>
+                <select value={teacherCollegeFilter} onChange={e => setTeacherCollegeFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="">全部学院</option>
+                  {colleges.map(col => <option key={col} value={col}>{col}</option>)}
+                </select>
+              </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {teacherStats.filter(t => !teacherCollegeFilter || t.teacher.college === teacherCollegeFilter).map(t => (
-                <div key={t.teacher.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowTeacherModal(t.teacher.id)}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
-                      {t.teacher.name[0]}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{t.teacher.name}</h4>
-                      <p className="text-xs text-gray-400">{t.teacher.title} · {t.teacher.college}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div>
-                      <p className="text-xl font-bold text-gray-900">{t.courseCount}</p>
-                      <p className="text-xs text-gray-400">教授课程</p>
-                    </div>
-                    <div>
-                      <p className="text-xl font-bold text-gray-900">{t.evalCount}</p>
-                      <p className="text-xs text-gray-400">评价数</p>
-                    </div>
-                    <div>
-                      <p className="text-xl font-bold text-blue-600">{t.avgScore.toFixed(1)}</p>
-                      <p className="text-xs text-gray-400">平均分</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="text-left py-3 px-4 font-medium text-gray-500">教师姓名</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-500">职称</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-500">学院</th>
+                    <th className="text-center py-3 px-4 font-medium text-gray-500">教授课程</th>
+                    <th className="text-center py-3 px-4 font-medium text-gray-500">评价数</th>
+                    <th className="text-center py-3 px-4 font-medium text-gray-500">综合评分</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teacherStats.filter(t => !teacherCollegeFilter || t.teacher.college === teacherCollegeFilter).map(t => (
+                    <tr key={t.teacher.id} className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer" onClick={() => setShowTeacherModal(t.teacher.id)}>
+                      <td className="py-3 px-4 font-medium text-gray-900">{t.teacher.name}</td>
+                      <td className="py-3 px-4 text-gray-600">{t.teacher.title}</td>
+                      <td className="py-3 px-4 text-gray-600">{t.teacher.college}</td>
+                      <td className="py-3 px-4 text-center text-gray-600">{t.courseCount}</td>
+                      <td className="py-3 px-4 text-center text-gray-600">{t.evalCount}</td>
+                      <td className="py-3 px-4 text-center text-blue-600 font-semibold">{t.avgScore.toFixed(1)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {/* Teacher Detail Modal */}
