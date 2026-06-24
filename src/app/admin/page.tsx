@@ -215,9 +215,9 @@ export default function AdminPage() {
             {/* Summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
-                { label: "课程总数", value: stats?.summary.totalCourses || 0, color: "bg-blue-500" },
+                { label: "课程数量", value: stats?.summary.totalCourses || 0, color: "bg-blue-500" },
                 { label: "评价总数", value: stats?.summary.totalEvalCount || 0, color: "bg-green-500" },
-                { label: "学生人数", value: 14, color: "bg-orange-500" },
+                { label: "学生总数", value: 44, color: "bg-orange-500" },
               ].map(card => (
                 <div key={card.label} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                   <div className="flex items-center gap-3">
@@ -324,6 +324,8 @@ export default function AdminPage() {
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="font-semibold text-gray-900">教师管理 ({teacherStats.length}人)</h3>
               <div className="flex items-center gap-3">
+                <button onClick={() => refreshData()} className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-xs hover:bg-gray-50">🔄 刷新数据</button>
+                <button onClick={() => alert("新增教师功能通过数据库种子脚本实现，请联系管理员")} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700">+ 新增教师</button>
                 <span className="text-xs text-gray-400">学院筛选:</span>
                 <select value={teacherCollegeFilter} onChange={e => setTeacherCollegeFilter(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">

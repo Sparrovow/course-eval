@@ -107,7 +107,7 @@ export default function StudentPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🎓</span>
             <div>
@@ -121,6 +121,41 @@ export default function StudentPage() {
             </button>
             <span className="text-sm text-gray-600 hidden sm:inline">{user?.name} ({user?.studentNo})</span>
             <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-600">退出</button>
+          </div>
+        </div>
+
+        {/* Sticky filter bar */}
+        <div className="border-t border-gray-100 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[180px] max-w-xs">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+              <input
+                type="text" placeholder="搜索课程..." value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+              />
+            </div>
+            <select value={semesterFilter} onChange={e => setSemesterFilter(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="">全部学期</option>
+              {semesters.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select value={collegeFilter} onChange={e => setCollegeFilter(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="">全部学院</option>
+              {colleges.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <div className="flex gap-1.5">
+              {tabs.map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === tab.key ? "bg-blue-600 text-white shadow-sm" : "bg-white border border-gray-300 text-gray-600 hover:bg-gray-50"}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </header>
@@ -173,39 +208,6 @@ export default function StudentPage() {
               <p className="text-gray-500 mt-1">
                 共 {courses.length} 门课程 · 已选修 {courses.filter(c => c.isEnrolled).length} 门 · 已评价 {courses.filter(c => c.isEvaluated).length} 门 · 待评价 {courses.filter(c => c.isEnrolled && !c.isEvaluated).length} 门
               </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3 mb-6">
-              <div className="relative flex-1 min-w-[200px] max-w-md">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                <input
-                  type="text" placeholder="搜索课程名称或编号..." value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
-                />
-              </div>
-              <select value={semesterFilter} onChange={e => setSemesterFilter(e.target.value)}
-                className="px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="">全部学期</option>
-                {semesters.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <select value={collegeFilter} onChange={e => setCollegeFilter(e.target.value)}
-                className="px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="">全部学院</option>
-                {colleges.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            <div className="flex gap-2 mb-6 flex-wrap">
-              {tabs.map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.key ? "bg-blue-600 text-white shadow-sm" : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"}`}
-                >
-                  {tab.label}
-                </button>
-              ))}
             </div>
 
             {filtered.length === 0 ? (
