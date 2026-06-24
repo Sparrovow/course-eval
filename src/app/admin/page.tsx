@@ -33,6 +33,9 @@ export default function AdminPage() {
   const [importMsg, setImportMsg] = useState("")
   const [showDetailModal, setShowDetailModal] = useState<number | null>(null)
   const [formData, setFormData] = useState({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6" })
+  const [dashboardCollegeFilter, setDashboardCollegeFilter] = useState("")
+
+  const colleges = [...new Set(courses.map(c => c.college))].sort()
 
   const courseEvals = (courseId: number) => (stats?.evaluations || []).filter(e => e.course.id === courseId)
   const detailCourse = stats?.courses.find(c => c.course.id === showDetailModal)
@@ -174,7 +177,7 @@ export default function AdminPage() {
         {activeTab === "dashboard" && (
           <>
             {/* Summary cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
                 { label: "课程总数", value: stats?.summary.totalCourses || 0, color: "bg-blue-500" },
                 { label: "评价总数", value: stats?.summary.totalEvalCount || 0, color: "bg-green-500" },
@@ -193,9 +196,22 @@ export default function AdminPage() {
               ))}
             </div>
 
+            {/* College filter */}
+            <div className="flex items-center gap-3 mb-6">
+              <span className="text-sm text-gray-500">学院筛选:</span>
+              <select value={dashboardCollegeFilter} onChange={e => setDashboardCollegeFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                <option value="">全部学院 ({(stats?.courses || []).length}门)</option>
+                {colleges.map(col => {
+                  const cnt = (stats?.courses || []).filter(c => c.course.college === col).length
+                  return <option key={col} value={col}>{col} ({cnt}门)</option>
+                })}
+              </select>
+            </div>
+
             {/* Course cards overview with click-for-detail */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{/* (ranking chart removed) */}
-              {(stats?.courses || []).map(c => (
+              {(stats?.courses || []).filter(c => !dashboardCollegeFilter || c.course.college === dashboardCollegeFilter).map(c => (
                 <div key={c.course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowDetailModal(c.course.id)}>
                   <div className="h-1 w-full rounded-full mb-3" style={{ backgroundColor: c.course.coverColor }} />
                   <p className="text-xs text-gray-400">{c.course.code} · {c.course.college}</p>

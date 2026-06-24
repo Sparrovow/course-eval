@@ -143,28 +143,15 @@ export default function LoginPage() {
 
           {/* Social login */}
           <div className="flex gap-3">
-            <button onClick={() => setError("微信登录暂未开通，请使用预设账号")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
+            <button onClick={() => setError("第三方登录暂未开通")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
               <FaWeixin className="text-green-500" /> 微信
             </button>
-            <button onClick={() => setError("QQ登录暂未开通，请使用预设账号")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
+            <button onClick={() => setError("第三方登录暂未开通")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
               <FaQq className="text-blue-500" /> QQ
             </button>
-            <button onClick={() => setError("GitHub登录暂未开通，请使用预设账号")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
+            <button onClick={() => setError("第三方登录暂未开通")} className="flex-1 py-2.5 border border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 transition-colors">
               <FaGithub className="text-gray-800" /> GitHub
             </button>
-          </div>
-
-          {/* Preset accounts hint */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-700 font-medium mb-2">📋 演示用预设账号（密码均为 123456）</p>
-            <div className="grid grid-cols-2 gap-1 text-xs text-blue-600">
-              <span>admin@courseeval.com</span>
-              <span className="text-right">管理员</span>
-              <span>xuhe@courseeval.com</span>
-              <span className="text-right">学生·徐鹤</span>
-              <span>wang@courseeval.com</span>
-              <span className="text-right">教师·王建国</span>
-            </div>
           </div>
         </div>
       </div>

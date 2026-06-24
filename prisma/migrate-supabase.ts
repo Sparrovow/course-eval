@@ -8,6 +8,56 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+// Common Chinese comments for realistic evaluation text
+const positiveComments = [
+  "老师讲课生动有趣，课堂气氛活跃，学到了很多实用的知识。",
+  "课程内容充实，理论与实践结合得很好，收获很大。",
+  "老师备课认真，讲解清晰易懂，对学生的提问很有耐心。",
+  "这门课让我对这个领域产生了浓厚的兴趣，非常推荐！",
+  "课程安排合理，难度适中，考试也比较公平。",
+  "老师经验丰富，案例讲解很有启发性。",
+  "课程设计很好，实验和作业都能巩固课堂所学。",
+  "整体来说是一门高质量的课程，学到了真本事。",
+  "老师很负责，课后答疑也很及时。",
+  "课件做得好，重点突出，复习起来很方便。",
+  "这门课对我未来的职业发展很有帮助。",
+  "教学内容紧跟前沿，老师自己的研究也融入课堂。",
+  "课堂互动多，不是照本宣科，体验很好。",
+  "老师对课程内容的把握很到位，深入浅出。",
+  "课程项目设计很有意思，动手实践机会多。",
+]
+const neutralComments = [
+  "课程整体还行，但有些地方讲得偏快，需要课后自己补充。",
+  "内容比较抽象，希望能多举一些实际应用的例子。",
+  "老师讲得算清楚，但课堂互动偏少，略显枯燥。",
+  "教材选得一般，有些章节组织的逻辑不太清晰。",
+  "课程难度偏高，考试需要有更多的复习资料。",
+  "内容有深度但不够广度，可以补充一些相关领域知识。",
+  "整体可以接受，但实验环境有时候不太稳定。",
+  "老师态度挺好，但授课方式比较传统。",
+]
+const negativeComments = [
+  "课程内容陈旧，跟不上行业发展，希望能更新。",
+  "老师讲得太快，基础差的同学完全跟不上节奏。",
+  "考试难度大，平时讲的内容和考试内容差距较大。",
+  "课程安排不合理，理论太多实践太少。",
+  "课本和课件不一致，复习起来很麻烦。",
+]
+
+function randInt(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min }
+function pick<T>(arr: T[]): T { return arr[randInt(0, arr.length - 1)] }
+
+function getCollege(code: string): string {
+  if (code.startsWith("CS")) return "计算机科学与技术学院";
+  if (code.startsWith("MATH")) return "数学与统计学院";
+  if (code.startsWith("ENG")) return "外国语学院";
+  if (code.startsWith("MGMT")) return "经济管理学院";
+  if (code.startsWith("EE")) return "电子信息工程学院";
+  if (code.startsWith("HUM")) return "人文学院";
+  return "计算机科学与技术学院";
+}
+
+
 async function main() {
   console.log("🧹 Clearing old data...");
   await prisma.loginLog.deleteMany();
@@ -22,219 +72,279 @@ async function main() {
   const hash = bcrypt.hashSync("123456", 10);
 
   // ─── Users ───────────────────────────────────────
-  const admin = await createUser({ email: "admin@courseeval.com", password: hash, name: "管理员", role: "ADMIN" });
-  const t1User = await createUser({ email: "wang@courseeval.com", password: hash, name: "王建国", role: "TEACHER", teacherNo: "T2001001" });
-  const t2User = await createUser({ email: "zhang@courseeval.com", password: hash, name: "张丽华", role: "TEACHER", teacherNo: "T2002003" });
-  const t3User = await createUser({ email: "liu@courseeval.com", password: hash, name: "刘明远", role: "TEACHER", teacherNo: "T2003015" });
-  const t4User = await createUser({ email: "chen@courseeval.com", password: hash, name: "陈志远", role: "TEACHER", teacherNo: "T2004008" });
-  const t5User = await createUser({ email: "sun@courseeval.com", password: hash, name: "孙晓芳", role: "TEACHER", teacherNo: "T2005012" });
-  const s1 = await createUser({ email: "xuhe@courseeval.com", password: hash, name: "徐鹤", role: "STUDENT", studentNo: "20232132046" });
-  const s2 = await createUser({ email: "liyang@courseeval.com", password: hash, name: "李阳", role: "STUDENT", studentNo: "20232132027" });
-  const s3 = await createUser({ email: "zhanghe@courseeval.com", password: hash, name: "张贺", role: "STUDENT", studentNo: "20232132024" });
-  const s4 = await createUser({ email: "zhaoyun@courseeval.com", password: hash, name: "赵云鹏", role: "STUDENT", studentNo: "20232132050" });
-  console.log("✅ 11 users");
+  const admin = await prisma.user.create({ data: { email: "admin@courseeval.com", password: hash, name: "管理员", role: "ADMIN" } });
 
-  const t1 = await prisma.teacher.create({ data: { userId: t1User.id, title: "教授", college: "计算机科学与技术学院" } });
-  const t2 = await prisma.teacher.create({ data: { userId: t2User.id, title: "副教授", college: "计算机科学与技术学院" } });
-  const t3 = await prisma.teacher.create({ data: { userId: t3User.id, title: "讲师", college: "数学与统计学院" } });
-  const t4 = await prisma.teacher.create({ data: { userId: t4User.id, title: "教授", college: "计算机科学与技术学院" } });
-  const t5 = await prisma.teacher.create({ data: { userId: t5User.id, title: "副教授", college: "外国语学院" } });
-
-  // ─── 24 Courses ──────────────────────────────────
-  const courseDefs = [
-    { code: "CS301", name: "Web前端开发技术", credits: 3, college: "计算机科学与技术学院", semester: "2024-2025-2", desc: "学习HTML、CSS、JavaScript及现代前端框架，掌握构建交互式Web应用的核心技能。", color: "#3B82F6", t: [t1] },
-    { code: "CS302", name: "数据库系统原理", credits: 4, college: "计算机科学与技术学院", semester: "2024-2025-2", desc: "涵盖关系数据库理论、SQL语言、数据库设计与优化、事务管理等核心技术。", color: "#10B981", t: [t2] },
-    { code: "CS303", name: "操作系统", credits: 4, college: "计算机科学与技术学院", semester: "2024-2025-1", desc: "学习进程管理、内存管理、文件系统和设备管理等操作系统核心概念与实现原理。", color: "#F59E0B", t: [t2] },
-    { code: "CS304", name: "计算机网络", credits: 3, college: "计算机科学与技术学院", semester: "2024-2025-1", desc: "系统学习TCP/IP协议栈、网络层路由、传输层协议及网络安全基础。", color: "#EF4444", t: [t2] },
-    { code: "CS305", name: "软件工程", credits: 3, college: "计算机科学与技术学院", semester: "2024-2025-2", desc: "学习软件开发全生命周期管理，包括需求分析、系统设计、编码实现、测试与维护。", color: "#8B5CF6", t: [t1] },
-    { code: "MATH201", name: "高等数学（下）", credits: 5, college: "数学与统计学院", semester: "2024-2025-2", desc: "学习多元微积分、无穷级数、常微分方程等高等数学核心内容。", color: "#EC4899", t: [t3] },
-    { code: "CS306", name: "人工智能导论", credits: 3, college: "计算机科学与技术学院", semester: "2024-2025-2", desc: "介绍人工智能的基本概念、搜索算法、机器学习基础与神经网络入门。", color: "#06B6D4", t: [t1, t4] },
-    { code: "MATH202", name: "线性代数", credits: 3, college: "数学与统计学院", semester: "2024-2025-1", desc: "学习向量空间、矩阵理论、线性变换、特征值与特征向量等基础知识。", color: "#84CC16", t: [t3] },
-    { code: "CS307", name: "数据结构与算法", credits: 4, college: "计算机科学与技术学院", semester: "2024-2025-1", desc: "学习常用数据结构和经典算法，包括树、图、排序、查找、动态规划等。", color: "#64748B", t: [t4] },
-    { code: "CS308", name: "编译原理", credits: 3, college: "计算机科学与技术学院", semester: "2024-2025-2", desc: "学习词法分析、语法分析、语义分析与代码生成等编译技术核心原理。", color: "#1E40AF", t: [t4] },
-    { code: "CS309", name: "计算机组成原理", credits: 4, college: "计算机科学与技术学院", semester: "2024-2025-1", desc: "学习计算机硬件系统的组成结构，包括CPU、存储器、总线与I/O系统。", color: "#DC2626", t: [t1] },
-    { code: "CS310", name: "Java程序设计", credits: 3, college: "计算机科学与技术学院", semester: "2024-2025-1", desc: "学习Java语言基础、面向对象编程、集合框架、多线程与网络编程。", color: "#EA580C", t: [t4] },
-    { code: "CS311", name: "Python数据分析", credits: 3, college: "计算机科学与技术学院", semester: "2024-2025-2", desc: "使用Python进行数据清洗、统计分析、可视化，涵盖Pandas、Matplotlib等核心库。", color: "#2563EB", t: [t1] },
-    { code: "MATH301", name: "概率论与数理统计", credits: 4, college: "数学与统计学院", semester: "2024-2025-2", desc: "学习概率基础、随机变量、抽样分布、参数估计与假设检验等。", color: "#7C3AED", t: [t3] },
-    { code: "MATH302", name: "离散数学", credits: 3, college: "数学与统计学院", semester: "2024-2025-1", desc: "学习集合论、图论、组合数学、数理逻辑及其在计算机科学中的应用。", color: "#0891B2", t: [t3] },
-    { code: "ENG201", name: "大学英语（三）", credits: 2, college: "外国语学院", semester: "2024-2025-1", desc: "提高英语听、说、读、写综合能力，通过四级题型训练和学术英语入门。", color: "#059669", t: [t5] },
-    { code: "ENG202", name: "大学英语（四）", credits: 2, college: "外国语学院", semester: "2024-2025-2", desc: "强化学术英语阅读与写作能力，准备六级考试，提升口语表达能力。", color: "#0D9488", t: [t5] },
-    { code: "CS312", name: "Linux系统管理", credits: 2, college: "计算机科学与技术学院", semester: "2024-2025-2", desc: "学习Linux操作系统的基本使用、Shell编程、系统管理与网络配置。", color: "#F97316", t: [t4] },
-    { code: "CS313", name: "移动应用开发", credits: 3, college: "计算机科学与技术学院", semester: "2024-2025-2", desc: "学习Android/iOS应用开发基础，涵盖UI设计、数据存储与网络通信。", color: "#22D3EE", t: [t1] },
-    { code: "MATH303", name: "数值分析", credits: 3, college: "数学与统计学院", semester: "2024-2025-1", desc: "学习数值逼近、数值积分、常微分方程数值解法等计算方法。", color: "#F43F5E", t: [t3] },
-    { code: "ENG203", name: "商务英语", credits: 2, college: "外国语学院", semester: "2024-2025-2", desc: "学习商务场景英语应用，包括商务写作、商务谈判与跨文化交际。", color: "#6366F1", t: [t5] },
-    { code: "CS314", name: "信息安全概论", credits: 3, college: "计算机科学与技术学院", semester: "2024-2025-2", desc: "学习密码学基础、网络安全、系统安全、应用安全等信息安全核心领域。", color: "#4F46E5", t: [t2] },
-    { code: "PE101", name: "大学体育", credits: 1, college: "体育教学部", semester: "2024-2025-1", desc: "增强体质，培养运动习惯，可选篮球、足球、羽毛球等项目。", color: "#A3E635", t: [t2] },
-    { code: "PE102", name: "大学体育", credits: 1, college: "体育教学部", semester: "2024-2025-2", desc: "继续深化运动技能，组织校内体育比赛与体能测试训练。", color: "#BEF264", t: [t2] },
+  // Real teachers (8)
+  const tUsers = [
+    { email: "wang@courseeval.com", name: "王建国", tno: "T2001001", title: "教授", college: "计算机科学与技术学院" },
+    { email: "zhang@courseeval.com", name: "张丽华", tno: "T2002003", title: "副教授", college: "计算机科学与技术学院" },
+    { email: "liu@courseeval.com", name: "刘明远", tno: "T2003015", title: "讲师", college: "数学与统计学院" },
+    { email: "chen@courseeval.com", name: "陈志远", tno: "T2004008", title: "教授", college: "计算机科学与技术学院" },
+    { email: "sun@courseeval.com", name: "孙晓芳", tno: "T2005012", title: "副教授", college: "外国语学院" },
+    { email: "zhou@courseeval.com", name: "周博文", tno: "T2006019", title: "教授", college: "电子信息工程学院" },
+    { email: "wu@courseeval.com", name: "吴雅琴", tno: "T2007022", title: "副教授", college: "经济管理学院" },
+    { email: "zhao_t@courseeval.com", name: "赵天宇", tno: "T2008030", title: "讲师", college: "人文学院" },
   ];
+  const tUserObjs = [];
+  for (const t of tUsers) {
+    tUserObjs.push(await prisma.user.create({ data: { email: t.email, password: hash, name: t.name, role: "TEACHER", teacherNo: t.tno } }));
+  }
+  console.log(`✅ ${tUserObjs.length} teachers`);
 
-  const courses = await Promise.all(
-    courseDefs.map(d =>
-      prisma.course.create({
-        data: { code: d.code, name: d.name, credits: d.credits, college: d.college, semester: d.semester, description: d.desc, coverColor: d.color },
-      })
-    )
-  );
-
-  // Course-teacher links
-  for (const cd of courseDefs) {
-    const course = courses.find(c => c.code === cd.code)!;
-    for (const teacher of cd.t) {
-      await prisma.courseTeacher.create({ data: { courseId: course.id, teacherId: teacher.id } });
-    }
+  // Test students (4 real user accounts)
+  const testStudents = [
+    { email: "xuhe@courseeval.com", name: "徐鹤", sno: "20232132046" },
+    { email: "liyang@courseeval.com", name: "李阳", sno: "20232132027" },
+    { email: "zhanghe@courseeval.com", name: "张贺", sno: "20232132024" },
+    { email: "zhaoyun@courseeval.com", name: "赵云鹏", sno: "20232132050" },
+  ];
+  const testStudentObjs = [];
+  for (const s of testStudents) {
+    testStudentObjs.push(await prisma.user.create({ data: { email: s.email, password: hash, name: s.name, role: "STUDENT", studentNo: s.sno } }));
   }
 
-  // ─── Enrollments (each student enrolled in ~12-16 courses) ───
-  // 徐鹤: enrolled in 14 courses (no evaluation for 3)
-  const s1Enrolled = [0,1,2,3,4,5,6,7,8,9,10,11,12,13]; // indices
-  // 李阳: enrolled in 14 courses (no evaluation for 3)
-  const s2Enrolled = [0,1,2,3,4,6,7,8,9,12,13,14,15,16];
-  // 张贺: enrolled in 12 courses (no evaluation for 3)
-  const s3Enrolled = [0,2,3,4,5,6,8,10,11,14,15,17];
-  // 赵云鹏: enrolled in 12 courses (no evaluation for 4)
-  const s4Enrolled = [1,2,3,5,7,8,9,13,16,18,19,20];
+  // Virtual students (10, no login accounts)
+  const virtualStudentNames = [
+    "王磊", "陈静", "赵鑫", "黄思雨", "周涛",
+    "吴芳", "郑浩然", "冯雪", "褚明哲", "蒋雨桐",
+  ];
+  const virtualStudentObjs = [];
+  for (let i = 0; i < 10; i++) {
+    const sno = `20232132${String(100 + i)}`;
+    virtualStudentObjs.push(await prisma.user.create({
+      data: { email: `student${i + 5}@courseeval.com`, password: hash, name: virtualStudentNames[i], role: "STUDENT", studentNo: sno },
+    }));
+  }
+  console.log(`✅ ${testStudentObjs.length} test + ${virtualStudentObjs.length} virtual students`);
+  const allStudents = [...testStudentObjs, ...virtualStudentObjs];
 
-  for (const idx of s1Enrolled) await prisma.enrollment.create({ data: { studentId: s1.id, courseId: courses[idx].id } });
-  for (const idx of s2Enrolled) await prisma.enrollment.create({ data: { studentId: s2.id, courseId: courses[idx].id } });
-  for (const idx of s3Enrolled) await prisma.enrollment.create({ data: { studentId: s3.id, courseId: courses[idx].id } });
-  for (const idx of s4Enrolled) await prisma.enrollment.create({ data: { studentId: s4.id, courseId: courses[idx].id } });
+  // ─── Teachers ────────────────────────────────────
+  const teachers = [];
+  for (let i = 0; i < tUsers.length; i++) {
+    teachers.push(await prisma.teacher.create({ data: { userId: tUserObjs[i].id, title: tUsers[i].title, college: tUsers[i].college } }));
+  }
 
-  // ─── Evaluations ─────────────────────────────────
-  const evalEntries: { sid: typeof s1; ci: number; ss: number[]; cm: string }[] = [
-    // 徐鹤: evaluates 11 of 14 courses (leaves 3 unevaluated: indices 8, 10, 12)
-    { sid: s1, ci: 0, ss: [5,5,4,4,5], cm: "王老师的课讲得非常生动，项目实践丰富，学到了很多实用的前端技术，强烈推荐！" },
-    { sid: s1, ci: 1, ss: [4,4,3,5,4], cm: "张老师讲解清晰，数据库实验设计合理。期末难度较大但考察了理解深度。" },
-    { sid: s1, ci: 2, ss: [4,4,4,3,4], cm: "课程内容扎实，实验环境配置略麻烦。张老师批改作业很认真。" },
-    { sid: s1, ci: 3, ss: [5,5,4,5,5], cm: "张老师的计算机网络课是全年级口碑最好的课程之一！内容紧跟前沿，课堂互动多。" },
-    { sid: s1, ci: 4, ss: [4,5,5,4,5], cm: "王老师的软件工程课注重团队协作和实际项目，对就业帮助很大。" },
-    { sid: s1, ci: 5, ss: [3,4,3,3,3], cm: "高数难度较高，刘老师上课节奏偏快，有时跟不上。但答疑很耐心。" },
-    { sid: s1, ci: 6, ss: [4,4,4,3,4], cm: "AI导论让我对人工智能产生了浓厚兴趣。课程内容丰富但需要较多数学基础。" },
-    { sid: s1, ci: 7, ss: [4,3,4,4,4], cm: "线代课程难度适中，对后续课程帮助很大。刘老师讲得比较清楚。" },
-    { sid: s1, ci: 9, ss: [3,4,3,3,3], cm: "编译原理较难，陈老师的课件做得很好。希望多一些上机实验。" },
-    { sid: s1, ci: 11, ss: [5,4,4,4,5], cm: "Java课非常实用，陈老师讲面向对象概念深入浅出。项目作业设计得很好。" },
-    { sid: s1, ci: 13, ss: [3,4,4,3,4], cm: "概率统计课公式多，刘老师很耐心。希望多一些例题讲解。" },
+  // ─── 80 Courses ──────────────────────────────────
+  const courseData: { code: string; name: string; credits: number; college: string; semester: string; desc: string; color: string; teacherIdx: number }[] = [];
 
-    // 李阳: evaluates 11 of 14 (leaves 3 unevaluated: 8, 10, 14)
-    { sid: s2, ci: 0, ss: [5,5,5,4,5], cm: "Web前端课让我从零基础到能独立搭建网站，王老师教学方式太好了。" },
-    { sid: s2, ci: 1, ss: [5,5,4,5,5], cm: "数据库课程让我对SQL和数据建模有了深刻理解，实验课设计非常用心。" },
-    { sid: s2, ci: 2, ss: [3,3,3,4,3], cm: "操作系统理论较深，希望多一些实践环节。张老师授课态度好但内容较枯燥。" },
-    { sid: s2, ci: 3, ss: [5,4,4,4,4], cm: "计算机网络课程内容丰富，抓包实验很有趣。张老师总能解答疑问。" },
-    { sid: s2, ci: 4, ss: [4,5,4,4,4], cm: "软件工程课团队项目收获很大，但项目文档要求偏多。" },
-    { sid: s2, ci: 6, ss: [4,4,4,3,4], cm: "AI导论很前沿，王老师和陈老师联合授课各有特色。" },
-    { sid: s2, ci: 7, ss: [4,3,3,4,3], cm: "线代课刘老师讲得还算清楚，但有些抽象概念理解起来困难。" },
-    { sid: s2, ci: 9, ss: [4,3,4,3,4], cm: "编译原理需要较强理论基础。陈老师很有耐心地解答问题。" },
-    { sid: s2, ci: 12, ss: [4,4,4,4,4], cm: "Python数据分析课非常实用，学完直接能用在其他课程的项目里。" },
-    { sid: s2, ci: 13, ss: [5,4,3,4,4], cm: "概率课公式推导很细致，考试难度适中，刘老师给分公正。" },
-    { sid: s2, ci: 16, ss: [4,4,4,4,4], cm: "Linux课虽然只有两个学分但内容很实在，学会了很多命令行技巧。" },
-
-    // 张贺: evaluates 9 of 12 (leaves 3 unevaluated: 8, 14, 17)
-    { sid: s3, ci: 0, ss: [4,4,4,3,4], cm: "前端课程实践性强，学到了很多。希望框架部分可以多讲一些。" },
-    { sid: s3, ci: 2, ss: [3,4,3,3,3], cm: "操作系统课程理论偏多，实验课时间不太够用。" },
-    { sid: s3, ci: 3, ss: [4,5,4,4,4], cm: "计算机网络课很有意思，老师讲解通俗易懂，抓包实验印象深刻。" },
-    { sid: s3, ci: 4, ss: [5,5,5,4,5], cm: "软件工程课让我明白了团队协作的重要性，项目开发全流程实践非常宝贵。" },
-    { sid: s3, ci: 5, ss: [3,4,3,2,3], cm: "高数考试比较难，希望能多一些习题课和辅导。" },
-    { sid: s3, ci: 6, ss: [4,4,4,3,4], cm: "AI导论课程非常前沿，两位老师配合得很好。" },
-    { sid: s3, ci: 10, ss: [4,4,3,3,4], cm: "计组课陈老师讲得很细，实验用Verilog挺有意思。" },
-    { sid: s3, ci: 11, ss: [4,5,5,5,5], cm: "Java是这学期最喜欢的课！项目作业做了一个图书管理系统，很有成就感。" },
-    { sid: s3, ci: 15, ss: [3,3,4,3,3], cm: "英语课孙老师很认真，但对我来说四级已过，课程内容偏简单了。" },
-
-    // 赵云鹏: evaluates 8 of 12 (leaves 4 unevaluated: 2, 8, 13, 19)
-    { sid: s4, ci: 1, ss: [5,4,5,5,5], cm: "数据库课程质量很高，张老师的SQL讲解让人茅塞顿开！" },
-    { sid: s4, ci: 3, ss: [4,4,3,3,3], cm: "计算机网络课内容很多，需要课后大量时间消化。实验课能再多一些就好了。" },
-    { sid: s4, ci: 5, ss: [2,3,3,2,2], cm: "高数真的太难了，刘老师讲得再好我也跟不上。希望能增加基础补习。" },
-    { sid: s4, ci: 7, ss: [3,4,3,3,3], cm: "线代课中等难度，考试比较友好。但行列式那部分讲得略快。" },
-    { sid: s4, ci: 9, ss: [3,3,2,3,3], cm: "编译原理很难理解，希望多从工程应用角度来讲授。" },
-    { sid: s4, ci: 16, ss: [5,5,4,5,5], cm: "Linux课学的东西都是实际工作中一定用得上的，强烈推荐！" },
-    { sid: s4, ci: 18, ss: [4,4,5,4,5], cm: "移动开发课非常有趣，做了一个天气App，很有成就感。" },
-    { sid: s4, ci: 20, ss: [4,5,4,4,5], cm: "商务英语孙老师口语特别好，课堂轻松有趣，收获很大。" },
+  // Computer Science (30 courses)
+  const csCourses = [
+    ["CS301","Web前端开发技术",3,"2024-2025-2","HTML/CSS/JS及现代前端框架",0],
+    ["CS302","数据库系统原理",4,"2024-2025-2","关系数据库理论、SQL、设计与优化",1],
+    ["CS303","操作系统",4,"2024-2025-1","进程管理、内存管理、文件系统",1],
+    ["CS304","计算机网络",3,"2024-2025-1","TCP/IP协议栈、路由、传输层",1],
+    ["CS305","软件工程",3,"2024-2025-2","软件开发生命周期管理",0],
+    ["CS306","人工智能导论",3,"2024-2025-2","AI基本概念、搜索、机器学习入门",3],
+    ["CS307","数据结构与算法",4,"2024-2025-1","常用数据结构和经典算法",3],
+    ["CS308","编译原理",3,"2024-2025-2","词法分析、语法分析、代码生成",3],
+    ["CS309","计算机组成原理",4,"2024-2025-1","CPU、存储器、总线与I/O系统",0],
+    ["CS310","Java程序设计",3,"2024-2025-1","面向对象编程、集合框架、多线程",3],
+    ["CS311","Python数据分析",3,"2024-2025-2","Pandas、Matplotlib数据科学",0],
+    ["CS312","Linux系统管理",2,"2024-2025-2","Shell编程、系统管理",3],
+    ["CS313","移动应用开发",3,"2024-2025-2","Android/iOS应用开发基础",0],
+    ["CS314","信息安全概论",3,"2024-2025-2","密码学、网络安全、应用安全",1],
+    ["CS315","云计算技术",3,"2024-2025-1","虚拟化、容器化、云服务架构",3],
+    ["CS316","数据挖掘",3,"2024-2025-2","聚类、分类、关联规则挖掘",1],
+    ["CS317","计算机图形学",3,"2024-2025-1","光照模型、渲染管线、着色器",0],
+    ["CS318","分布式系统",3,"2024-2025-2","分布式一致性、分布式存储",3],
+    ["CS319","软件测试",2,"2024-2025-1","测试方法论、自动化测试框架",1],
+    ["CS320","嵌入式系统",3,"2024-2025-2","单片机、RTOS、传感器接口",0],
+    ["CS321","区块链原理",3,"2024-2025-2","共识算法、智能合约、分布式账本",0],
+    ["CS322","数字图像处理",3,"2024-2025-1","滤波、变换、特征提取",1],
+    ["CS323","模式识别",3,"2024-2025-2","特征工程、分类器设计、聚类",3],
+    ["CS324","虚拟现实技术",2,"2024-2025-1","VR/AR原理、3D渲染、交互设计",0],
+    ["CS325","自然语言处理",3,"2024-2025-2","词法分析、语义理解、大语言模型",1],
+    ["CS326","计算机网络管理",2,"2024-2025-2","网管协议、故障诊断、性能管理",0],
+    ["CS327","并行计算",3,"2024-2025-1","OpenMP、MPI、GPU编程",3],
+    ["CS328","软件项目管理",2,"2024-2025-2","敏捷开发、项目规划、风险管理",1],
+    ["CS329","物联网技术",3,"2024-2025-2","传感器网络、RFID、边缘计算",0],
+    ["CS330","深度学习",3,"2024-2025-2","CNN、RNN、Transformer架构",1],
   ];
 
-  // Random dates spread across semesters for realism
-  const randomDates = [
-    new Date("2025-04-04T17:00:00Z"), new Date("2025-06-02T14:00:00Z"), new Date("2025-03-06T18:00:00Z"),
-    new Date("2025-05-31T13:00:00Z"), new Date("2025-03-20T17:00:00Z"), new Date("2025-02-16T19:00:00Z"),
-    new Date("2025-03-06T22:00:00Z"), new Date("2025-02-15T15:00:00Z"), new Date("2024-10-31T22:00:00Z"),
-    new Date("2024-09-01T19:00:00Z"), new Date("2024-10-04T16:00:00Z"), new Date("2024-09-21T15:00:00Z"),
-    new Date("2024-10-01T10:00:00Z"), new Date("2024-11-23T11:00:00Z"), new Date("2024-10-19T20:00:00Z"),
-    new Date("2025-05-27T16:00:00Z"), new Date("2025-03-15T11:00:00Z"), new Date("2025-06-10T17:00:00Z"),
-    new Date("2025-02-20T15:00:00Z"), new Date("2025-05-28T21:00:00Z"), new Date("2025-03-28T08:00:00Z"),
-    new Date("2025-03-23T16:00:00Z"), new Date("2025-03-22T15:00:00Z"), new Date("2024-11-29T09:00:00Z"),
-    new Date("2024-10-01T21:00:00Z"), new Date("2025-05-01T22:00:00Z"), new Date("2025-05-26T17:00:00Z"),
-    new Date("2025-05-16T14:00:00Z"), new Date("2024-09-22T22:00:00Z"), new Date("2024-11-08T14:00:00Z"),
-    new Date("2024-12-17T19:00:00Z"), new Date("2025-04-20T20:00:00Z"), new Date("2025-05-30T09:00:00Z"),
-    new Date("2025-04-02T20:00:00Z"), new Date("2025-05-19T11:00:00Z"), new Date("2025-04-03T19:00:00Z"),
-    new Date("2024-12-23T08:00:00Z"), new Date("2025-06-07T21:00:00Z"), new Date("2025-05-11T16:00:00Z"),
-    new Date("2025-06-09T19:00:00Z"), new Date("2025-05-31T18:00:00Z"),
+  // Math & Stats (15 courses)
+  const mathCourses = [
+    ["MATH201","高等数学（上）",5,"2024-2025-1","极限、导数、一元微积分",2],
+    ["MATH202","高等数学（下）",5,"2024-2025-2","多元微积分、无穷级数",2],
+    ["MATH203","线性代数",3,"2024-2025-1","向量空间、矩阵理论",2],
+    ["MATH204","概率论与数理统计",4,"2024-2025-2","概率基础、抽样分布、假设检验",2],
+    ["MATH205","离散数学",3,"2024-2025-1","集合论、图论、数理逻辑",2],
+    ["MATH206","数值分析",3,"2024-2025-1","数值逼近、数值积分",2],
+    ["MATH207","数学建模",3,"2024-2025-2","模型构建、优化算法、MATLAB",2],
+    ["MATH208","复变函数",3,"2024-2025-1","复积分、级数、留数定理",2],
+    ["MATH209","常微分方程",3,"2024-2025-2","初值问题、稳定性分析",2],
+    ["MATH210","运筹学",3,"2024-2025-2","线性规划、网络优化、决策分析",2],
+    ["MATH211","抽象代数",3,"2024-2025-1","群论、环论、域论",2],
+    ["MATH212","实变函数",3,"2024-2025-2","测度论、勒贝格积分",2],
+    ["MATH213","拓扑学",3,"2024-2025-1","点集拓扑、连续映射",2],
+    ["MATH214","时间序列分析",3,"2024-2025-2","ARIMA、GARCH、预测",2],
+    ["MATH215","多元统计分析",3,"2024-2025-2","主成分分析、因子分析、聚类",2],
   ];
 
-  for (let i = 0; i < evalEntries.length; i++) {
-    const e = evalEntries[i];
-    const avg = e.ss.reduce((a, b) => a + b, 0) / 5;
-    await prisma.evaluation.create({
-      data: {
-        studentId: e.sid.id, courseId: courses[e.ci].id,
-        scoreContent: e.ss[0], scoreAttitude: e.ss[1], scoreMethod: e.ss[2],
-        scoreExam: e.ss[3], scoreOverall: e.ss[4],
-        avgScore: Math.round(avg * 100) / 100, comment: e.cm,
-        createdAt: randomDates[i] || undefined,
-      },
+  // Foreign Languages (12 courses)
+  const engCourses = [
+    ["ENG201","大学英语（一）",2,"2024-2025-1","英语听、说、读、写综合能力",4],
+    ["ENG202","大学英语（二）",2,"2024-2025-2","四级题型训练、学术英语入门",4],
+    ["ENG203","大学英语（三）",2,"2024-2025-1","学术英语阅读与写作",4],
+    ["ENG204","大学英语（四）",2,"2024-2025-2","六级备考、口语表达提升",4],
+    ["ENG205","商务英语",2,"2024-2025-2","商务场景英语、跨文化交际",4],
+    ["ENG206","英美文学选读",3,"2024-2025-1","经典作品赏析、文学批评入门",4],
+    ["ENG207","翻译理论与实践",2,"2024-2025-2","英汉互译技巧、CAT工具",4],
+    ["ENG208","日语（二外）",2,"2024-2025-1","五十音图、基础语法、日常会话",4],
+    ["ENG209","法语（二外）",2,"2024-2025-2","发音、基础语法、法国文化",4],
+    ["ENG210","英语演讲与辩论",2,"2024-2025-2","演讲技巧、辩论策略、即兴发挥",4],
+    ["ENG211","跨文化交际",2,"2024-2025-1","文化差异、非语言交际、适应策略",4],
+    ["ENG212","英语写作",2,"2024-2025-2","学术写作、邮件写作、报告撰写",4],
+  ];
+
+  // Economics & Management (10 courses)
+  const mgmtCourses = [
+    ["MGMT301","管理学原理",3,"2024-2025-1","管理理论、组织行为、决策分析",5],
+    ["MGMT302","微观经济学",3,"2024-2025-1","供需理论、市场结构、博弈论",5],
+    ["MGMT303","宏观经济学",3,"2024-2025-2","GDP、通货膨胀、货币政策",5],
+    ["MGMT304","会计学基础",3,"2024-2025-2","财务报表、借贷记账、成本核算",5],
+    ["MGMT305","市场营销学",3,"2024-2025-2","营销策略、品牌管理、消费者行为",5],
+    ["MGMT306","人力资源管理",2,"2024-2025-1","招聘、绩效管理、薪酬设计",5],
+    ["MGMT307","财务管理",3,"2024-2025-2","资本预算、融资决策、股利政策",5],
+    ["MGMT308","电子商务",3,"2024-2025-2","电商模式、电子支付、网络营销",5],
+    ["MGMT309","供应链管理",2,"2024-2025-1","采购管理、库存控制、物流规划",5],
+    ["MGMT310","创业管理",2,"2024-2025-2","商业计划书、融资策略、团队组建",5],
+  ];
+
+  // Electronics & Information Engineering (8 courses)
+  const eeCourses = [
+    ["EE401","电路分析基础",3,"2024-2025-1","电路定理、时域分析、频域分析",6],
+    ["EE402","数字电路与逻辑设计",3,"2024-2025-2","组合逻辑、时序逻辑、HDL设计",6],
+    ["EE403","通信原理",4,"2024-2025-2","调制解调、信道编码、信息论",6],
+    ["EE404","信号与系统",3,"2024-2025-1","连续信号、傅里叶变换、拉氏变换",6],
+    ["EE405","电磁场与电磁波",3,"2024-2025-2","麦克斯韦方程、传输线、天线",6],
+    ["EE406","嵌入式系统设计",3,"2024-2025-2","ARM架构、RTOS、设备驱动开发",6],
+    ["EE407","数字信号处理",3,"2024-2025-1","DFT、FFT、数字滤波器设计",6],
+    ["EE408","光纤通信",2,"2024-2025-2","光纤原理、光器件、SDH/WDM",6],
+  ];
+
+  // Humanities (5 courses)
+  const humCourses = [
+    ["HUM501","中国近现代史纲要",2,"2024-2025-1","近代中国历史变迁与经验教训",7],
+    ["HUM502","马克思主义基本原理",3,"2024-2025-2","辩证唯物主义、政治经济学",7],
+    ["HUM503","思想道德与法治",2,"2024-2025-1","社会主义核心价值观、法律基础",7],
+    ["HUM504","大学语文",2,"2024-2025-2","经典文学作品赏析、应用文写作",7],
+    ["HUM505","心理学导论",2,"2024-2025-2","认知、情绪、人格、社会心理学",7],
+  ];
+
+  const allCourseDefs = [...csCourses, ...mathCourses, ...engCourses, ...mgmtCourses, ...eeCourses, ...humCourses];
+  const colors = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#06B6D4","#84CC16","#64748B","#1E40AF","#DC2626","#EA580C","#2563EB","#7C3AED","#0891B2","#059669","#0D9488","#F97316","#22D3EE","#F43F5E","#6366F1","#4F46E5","#A3E635","#BEF264","#E11D48","#9333EA","#0284C7","#4F46E5","#C026D3","#65A30D","#0EA5E9","#78716C","#D946EF","#14B8A6","#F97316","#8B5CF6","#3B82F6","#10B981","#F59E0B","#EF4444","#06B6D4","#84CC16","#64748B","#DC2626","#EA580C","#2563EB","#7C3AED","#0891B2","#059669","#0D9488","#F97316","#22D3EE","#F43F5E","#6366F1","#4F46E5","#A3E635","#BEF264","#E11D48","#9333EA","#0284C7","#4F46E5","#C026D3","#65A30D","#0EA5E9","#78716C","#D946EF","#14B8A6","#F97316","#8B5CF6","#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#06B6D4","#84CC16","#64748B","#1E40AF"];
+
+  for (let i = 0; i < allCourseDefs.length; i++) {
+    const d = allCourseDefs[i];
+    courseData.push({
+      code: d[0] as string, name: d[1] as string, credits: d[2] as number, semester: d[3] as string, desc: d[4] as string,
+      college: getCollege(d[0] as string), color: colors[i % colors.length], teacherIdx: d[5] as number,
     });
   }
 
-  // ─── StatsReports ────────────────────────────────
-  const evalData = evalEntries;
-  const courseEvalMap = new Map<number, { avgs: number[]; comments: string[] }>();
-  for (const e of evalData) {
-    if (!courseEvalMap.has(e.ci)) courseEvalMap.set(e.ci, { avgs: [], comments: [] });
-    courseEvalMap.get(e.ci)!.avgs.push(e.ss.reduce((a, b) => a + b, 0) / 5);
-    courseEvalMap.get(e.ci)!.comments.push(e.cm);
+  const courses = [];
+  for (const cd of courseData) {
+    courses.push(await prisma.course.create({
+      data: { code: cd.code, name: cd.name, credits: cd.credits, college: cd.college, semester: cd.semester, description: cd.desc || "", coverColor: cd.color },
+    }));
+  }
+  console.log(`✅ ${courses.length} courses`);
+
+  // ─── Course-Teacher links ──────────────────
+  for (let i = 0; i < courseData.length; i++) {
+    await prisma.courseTeacher.create({
+      data: { courseId: courses[i].id, teacherId: teachers[courseData[i].teacherIdx].id },
+    });
   }
 
-  const meaningfulWords = [
-    "老师", "课程", "实验", "项目", "考试", "作业", "教学", "设计", "数据库", "前端", "内容",
-    "技术", "实践", "框架", "系统", "学习", "编程", "讲解", "态度", "耐心", "经验", "方法",
-    "丰富", "实用", "清晰", "深刻", "兴趣", "团队", "就业", "网络", "协议", "算法",
-    "机器学习", "智能", "开发", "测试", "维护", "管理", "安全", "架构", "互动", "答疑",
-    "协作", "项目式", "板书", "感染力", "期末", "综合", "技能", "课堂", "进度", "辅导",
-    "命令行", "App", "PPT", "课件", "板书", "例题", "难度", "基础", "复习", "习题",
-    "软件工程", "数据结构", "SQL", "Java", "Python", "Linux", "编译", "计组", "英语",
-  ];
-
-  const dims = ["overall", "content", "attitude", "method", "exam"];
-  for (const [ci, data] of courseEvalMap) {
-    const avgs = data.avgs;
-    const n = avgs.length;
-    const mean = avgs.reduce((a, b) => a + b, 0) / n;
-    const sorted = [...avgs].sort((a, b) => a - b);
-    const med = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
-    const vari = avgs.reduce((s, v) => s + (v - mean) ** 2, 0) / n;
-
-    const dist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    for (const e of evalData.filter(e => e.ci === ci)) {
-      for (const s of e.ss) dist[s] = (dist[s] || 0) + 1;
+  // ─── Enrollments: each student enrolled in 45-55 courses ───
+  for (const student of allStudents) {
+    const numEnrolled = randInt(45, 55);
+    const shuffled = [...courses].sort(() => Math.random() - 0.5);
+    for (let j = 0; j < numEnrolled; j++) {
+      await prisma.enrollment.create({ data: { studentId: student.id, courseId: shuffled[j].id } });
     }
+  }
 
-    const text = data.comments.join("");
-    const cw = meaningfulWords.map(w => ({ word: w, weight: (text.match(new RegExp(w, "g")) || []).length })).filter(w => w.weight > 0).sort((a, b) => b.weight - a.weight).slice(0, 50);
+  // ─── Evaluations: each course gets 6-10 evals with staggered dates ───
+  const evalCount = [];
+  for (let ci = 0; ci < courses.length; ci++) {
+    const n = randInt(6, 12);
+    evalCount.push(n);
+  }
 
-    for (const dim of dims) {
-      await prisma.statsReport.create({
+  let totalEvals = 0;
+  const semDates: Record<string, { start: Date; end: Date }> = {
+    "2024-2025-1": { start: new Date("2024-09-01"), end: new Date("2024-12-31") },
+    "2024-2025-2": { start: new Date("2025-02-15"), end: new Date("2025-06-20") },
+  };
+
+  const evalDates: string[] = [];
+  // Generate eval dates for each course
+  for (let ci = 0; ci < courses.length; ci++) {
+    const n = evalCount[ci];
+    const sem = courseData[ci].semester;
+    const range = semDates[sem];
+    const msRange = range.end.getTime() - range.start.getTime();
+    for (let j = 0; j < n; j++) {
+      const d = new Date(range.start.getTime() + Math.random() * msRange);
+      evalDates.push(d.toISOString());
+    }
+  }
+  evalDates.sort(() => Math.random() - 0.5); // shuffle
+
+  let dateIdx = 0;
+  for (let ci = 0; ci < courses.length; ci++) {
+    const n = evalCount[ci];
+    // Pick n random students enrolled in this course
+    const enrolledStudents = allStudents.filter(() => Math.random() < 0.5);
+    const shuffled = [...enrolledStudents].sort(() => Math.random() - 0.5);
+    const participants = shuffled.slice(0, n);
+
+    for (const student of participants) {
+      // Generate somewhat realistic scores
+      const baseScore = randInt(2, 5);
+      const scores = [
+        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
+        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
+        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
+        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
+        Math.min(5, Math.max(1, baseScore + randInt(-1, 1))),
+      ];
+      const avg = scores.reduce((a, b) => a + b, 0) / 5;
+
+      // Comments: only ~60% of evals have text
+      let comment = "";
+      if (Math.random() < 0.6) {
+        const pool = avg >= 4 ? positiveComments : avg >= 3 ? neutralComments : negativeComments;
+        comment = pick(pool);
+      }
+
+      await prisma.evaluation.create({
         data: {
-          courseId: courses[ci].id, dimension: dim,
-          avgScore: Math.round(mean * 100) / 100, median: Math.round(med * 100) / 100,
-          stdDev: Math.round(Math.sqrt(vari) * 100) / 100,
-          maxScore: Math.max(...avgs), minScore: Math.min(...avgs),
-          evalCount: n, scoreDist: JSON.stringify(dist), wordCloud: JSON.stringify(cw),
+          studentId: student.id, courseId: courses[ci].id,
+          scoreContent: scores[0], scoreAttitude: scores[1], scoreMethod: scores[2],
+          scoreExam: scores[3], scoreOverall: scores[4],
+          avgScore: Math.round(avg * 100) / 100,
+          comment: comment || null,
+          createdAt: evalDates[dateIdx++] ? new Date(evalDates[dateIdx - 1]) : undefined,
         },
-      });
+      }).catch(() => {}); // skip duplicate constraint errors
     }
+    totalEvals += n;
   }
 
-  console.log("🎉 Seed done! 24 courses, 11 users, 39 evaluations");
+  console.log(`✅ ~${totalEvals} evaluations`);
+  console.log("🎉 Seed complete!");
+  console.log("");
   console.log("📋 Preset accounts (password: 123456):");
-  console.log("   admin@courseeval.com | xuhe@courseeval.com | wang@courseeval.com");
+  console.log("   管理员: admin@courseeval.com");
+  console.log("   学生: xuhe@courseeval.com / liyang@courseeval.com / zhanghe@courseeval.com / zhaoyun@courseeval.com");
+  console.log("   教师: wang@courseeval.com (王建国) / zhang@courseeval.com (张丽华) / liu@courseeval.com (刘明远)");
+  console.log("   教师: chen@courseeval.com (陈志远) / sun@courseeval.com (孙晓芳)");
+  console.log("   教师: zhou@courseeval.com (周博文) / wu@courseeval.com (吴雅琴) / zhao_t@courseeval.com (赵天宇)");
 }
 
-async function createUser(d: any) { return prisma.user.create({ data: d }); }
-
-main().catch(e => { console.error(e); process.exit(1); }).finally(() => prisma.$disconnect());
+main()
+  .catch(e => { console.error(e); process.exit(1); })
+  .finally(() => { prisma.$disconnect(); pool.end(); });
