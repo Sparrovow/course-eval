@@ -144,34 +144,34 @@ export default function AdminPage() {
 
   const handleDeleteEval = async (evalId: number) => {
     if (!confirm("确定删除该评价记录吗？")) return
-    const res = await fetch(`/api/admin/evaluations?id=${evalId}`, { method: "DELETE" })
-    const data = await res.json()
-    if (data.code === 200) refreshData()
-    else alert(data.message || "删除失败")
+    const r = await fetch(`/api/admin/evaluations?id=${evalId}`, { method: "DELETE" })
+    const d = await r.json()
+    if (d.code === 200) refreshData()
+    else alert(d.message || "删除失败")
   }
 
   const handleDeleteTeacher = async (teacherId: number, teacherName: string) => {
     if (!confirm(`确定删除教师「${teacherName}」吗？此操作不可恢复。`)) return
-    const res = await fetch(`/api/admin/teachers?id=${teacherId}`, { method: "DELETE" })
-    const data = await res.json()
-    if (data.code === 200) { fetchTeachers(); refreshData() }
-    else alert(data.message || "删除失败")
+    const r = await fetch(`/api/admin/teachers?id=${teacherId}`, { method: "DELETE" })
+    const d = await r.json()
+    if (d.code === 200) { fetchTeachers(); refreshData() }
+    else alert(d.message || "删除失败")
   }
 
   const handleAddTeacher = async () => {
-    const res = await fetch("/api/admin/teachers", {
+    const r = await fetch("/api/admin/teachers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...teacherForm, email: "temp_" + Date.now() + "@courseeval.com", password: "123456" }),
     })
-    const data = await res.json()
-    if (data.code === 200) {
+    const d = await r.json()
+    if (d.code === 200) {
       setShowAddTeacherModal(false)
       setTeacherForm({ name: "", title: "讲师", college: "计算机科学与技术学院" })
       fetchTeachers()
       refreshData()
     } else {
-      alert(data.message || "创建失败")
+      alert(d.message || "创建失败")
     }
   }
 
