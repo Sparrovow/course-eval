@@ -224,7 +224,7 @@ export default function StudentPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {filtered.map(course => (
-                  <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                  <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={() => fetchCourseDetail(course.id)}>
                     <div className="h-2" style={{ backgroundColor: course.coverColor }} />
                     <div className="p-5">
                       <div className="flex items-start justify-between mb-2">

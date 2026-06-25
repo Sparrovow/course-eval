@@ -471,10 +471,7 @@ export default function AdminPage() {
 
         {activeTab === "courses" && (
           <div>
-            <div className="flex gap-2 mb-4">
-              <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">+ 添加课程</button>
-              <button onClick={() => setShowImportModal(true)} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">📥 批量导入 CSV</button>
-            </div>
+            {/* Add Course and Import buttons removed per user request */}
 
             {/* Add Course Modal */}
             {showAddModal && (
