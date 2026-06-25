@@ -143,6 +143,14 @@ export default function AdminPage() {
     else alert(data.message || "删除失败")
   }
 
+  const handleDeleteTeacher = async (teacherId: number, teacherName: string) => {
+    if (!confirm(`确定删除教师「${teacherName}」吗？此操作不可恢复。`)) return
+    const res = await fetch(`/api/admin/teachers?id=${teacherId}`, { method: "DELETE" })
+    const data = await res.json()
+    if (data.code === 200) refreshData()
+    else alert(data.message || "删除失败")
+  }
+
   const handleAddTeacher = async () => {
     const res = await fetch("/api/admin/teachers", {
       method: "POST",
@@ -397,6 +405,9 @@ export default function AdminPage() {
                       <td className="py-3 px-4 text-center text-gray-600">{t.courseCount}</td>
                       <td className="py-3 px-4 text-center text-gray-600">{t.evalCount}</td>
                       <td className="py-3 px-4 text-center text-blue-600 font-semibold">{t.avgScore.toFixed(1)}</td>
+                      <td className="py-3 px-4 text-center">
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteTeacher(t.teacher.id, t.teacher.name) }} className="text-red-500 hover:text-red-700 text-xs">删除</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

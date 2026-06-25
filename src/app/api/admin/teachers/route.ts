@@ -42,3 +42,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ code: 500, message: "服务器内部错误" }, { status: 500 })
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  const session = await getSession()
+  if (!session || session.role !== "ADMIN") {
+    return NextResponse.json({ code: 403, message: "仅管理员可操作" }, { status: 403 })
+  }
+
+  const url = new URL(request.url)
+  const idStr = url.searchParams.get("id")
+  if (!idStr) {
+    return NextResponse.json({ code: 422, message: "请提供教师ID" }, { status: 422 })
+  }
+
+  try {
+    const teacherId = parseInt(idStr)
+    const teacher = await prisma.teacher.findUnique({ where: { id: teacherId } })
+    if (!teacher) {
+      return NextResponse.json({ code: 404, message: "教师不存在" }, { status: 404 })
+    }
+
+    // Remove related data first
+    await prisma.courseTeacher.deleteMany({ where: { teacherId } })
+    await prisma.teacher.delete({ where: { id: teacherId } })
+
+    return NextResponse.json({ code: 200, message: "教师已删除" })
+  } catch (error) {
+    console.error("Delete teacher error:", error)
+    return NextResponse.json({ code: 500, message: "删除失败" }, { status: 500 })
+  }
+}
