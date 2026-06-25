@@ -83,6 +83,8 @@ export default function StudentPage() {
     }
     if (semesterFilter) result = result.filter(c => c.semester === semesterFilter)
     if (collegeFilter) result = result.filter(c => c.college === collegeFilter)
+    // Sort by average rating descending
+    result.sort((a, b) => (b.evalCount || 0) - (a.evalCount || 0))
     return result
   }, [courses, activeTab, search, semesterFilter, collegeFilter])
 

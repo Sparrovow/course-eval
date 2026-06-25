@@ -35,7 +35,7 @@ export default function AdminPage() {
   const [showTeacherModal, setShowTeacherModal] = useState<number | null>(null)
   const [teacherCollegeFilter, setTeacherCollegeFilter] = useState("")
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false)
-  const [teacherForm, setTeacherForm] = useState({ name: "", title: "讲师", college: "计算机科学与技术学院", email: "", password: "123456" })
+  const [teacherForm, setTeacherForm] = useState({ name: "", title: "讲师", college: "计算机科学与技术学院" })
   const [loginLogs, setLoginLogs] = useState<any[]>([])
   const [formData, setFormData] = useState({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6", teacherId: "" })
   const [dashboardCollegeFilter, setDashboardCollegeFilter] = useState("")
@@ -155,12 +155,12 @@ export default function AdminPage() {
     const res = await fetch("/api/admin/teachers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(teacherForm),
+      body: JSON.stringify({ ...teacherForm, email: "temp_" + Date.now() + "@courseeval.com", password: "123456" }),
     })
     const data = await res.json()
     if (data.code === 200) {
       setShowAddTeacherModal(false)
-      setTeacherForm({ name: "", title: "讲师", college: "计算机科学与技术学院", email: "", password: "123456" })
+      setTeacherForm({ name: "", title: "讲师", college: "计算机科学与技术学院" })
       refreshData()
     } else {
       alert(data.message || "创建失败")
@@ -468,8 +468,6 @@ export default function AdminPage() {
                       <div className="flex-1"><input placeholder="职称" value={teacherForm.title} onChange={e => setTeacherForm({ ...teacherForm, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /><label className="block text-xs text-gray-500 ml-1">职称</label></div>
                       <div className="flex-1"><input placeholder="学院" value={teacherForm.college} onChange={e => setTeacherForm({ ...teacherForm, college: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /><label className="block text-xs text-gray-500 ml-1">学院</label></div>
                     </div>
-                    <div><input placeholder="邮箱" type="email" value={teacherForm.email} onChange={e => setTeacherForm({ ...teacherForm, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /><label className="block text-xs text-gray-500 ml-1">邮箱</label></div>
-                    <div><input placeholder="密码" value={teacherForm.password} onChange={e => setTeacherForm({ ...teacherForm, password: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /><label className="block text-xs text-gray-500 ml-1">密码</label></div>
                     <div className="flex gap-2">
                       <button onClick={handleAddTeacher} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">创建</button>
                       <button onClick={() => setShowAddTeacherModal(false)} className="py-2 px-4 border border-gray-300 rounded-lg text-sm">取消</button>
@@ -576,6 +574,9 @@ export default function AdminPage() {
                         <td className="py-3 px-4 text-center text-gray-600">{c.credits}</td>
                         <td className="py-3 px-4 text-gray-500">{c.semester}</td>
                         <td className="py-3 px-4 text-center text-blue-600 font-medium">{c.evalCount}</td>
+                        <td className="py-3 px-4 text-center">
+                          <button onClick={() => handleDeleteCourse(c.id, c.name)} className="text-red-500 hover:text-red-700 text-xs">删除</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
