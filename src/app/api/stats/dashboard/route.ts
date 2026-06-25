@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
           student: { select: { id: true, name: true, studentNo: true } },
           course: { select: { id: true, name: true, code: true, coverColor: true, college: true } },
         },
-        orderBy: { avgScore: "desc" },
+        orderBy: { createdAt: "desc" },
       })
 
       const courses = await prisma.course.findMany({

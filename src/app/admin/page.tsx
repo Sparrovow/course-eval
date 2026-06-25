@@ -21,6 +21,12 @@ interface CourseItem {
   id: number; code: string; name: string; credits: number; college: string; semester: string; evalCount: number
 }
 
+interface TeacherItem {
+  id: number; name: string; email: string; title: string; college: string
+  courses: Array<{ id: number; code: string; name: string; college: string }>
+  courseCount: number
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const [stats, setStats] = useState<AdminStats | null>(null)
@@ -37,48 +43,42 @@ export default function AdminPage() {
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false)
   const [teacherForm, setTeacherForm] = useState({ name: "", title: "讲师", college: "计算机科学与技术学院" })
   const [loginLogs, setLoginLogs] = useState<any[]>([])
+  const [teacherList, setTeacherList] = useState<TeacherItem[]>([])
   const [formData, setFormData] = useState({ code: "", name: "", credits: "3", college: "计算机科学与技术学院", semester: "2024-2025-2", description: "", coverColor: "#3B82F6", teacherId: "" })
   const [dashboardCollegeFilter, setDashboardCollegeFilter] = useState("")
+  const [semesterFilter, setSemesterFilter] = useState("")
+  const [coursesCollegeFilter, setCoursesCollegeFilter] = useState("")
+  const [coursesSemesterFilter, setCoursesSemesterFilter] = useState("")
 
   const colleges = [...new Set(courses.map(c => c.college))].sort()
+  const semesters = [...new Set(courses.map(c => c.semester))].sort()
 
-  // Build teacher stats from ALL teachers (not just those with evals)
-  const teacherStats = (() => {
-    const map = new Map<number, { teacher: { id: number; name: string; title: string; college: string }; courseIds: Set<number>; totalScore: number; evalCount: number; comments: any[] }>()
-    // First, initialize from all courses (ensures all teachers are present)
-    if (stats?.courses) {
-      for (const cd of stats.courses) {
-        const teachers = cd.course?.teachers || []
-        for (const t of teachers) {
-          if (!map.has(t.id)) {
-            map.set(t.id, { teacher: { ...t, college: cd.course?.college || '' }, courseIds: new Set(), totalScore: 0, evalCount: 0, comments: [] })
-          }
-          map.get(t.id)!.courseIds.add(cd.course.id)
-        }
-      }
-    }
-    // Then add evaluation data
+  // Build teacher stats from teacherList API (includes all teachers, even without courses)
+  const teacherStats = teacherList.map(t => {
+    let totalScore = 0
+    let evalCount = 0
+    const comments: any[] = []
     if (stats?.evaluations) {
       for (const ev of stats.evaluations) {
         const cd = (stats.courses || []).find(c => c.course.id === ev.course.id)
-        const teachers = (cd?.course?.teachers || []).map(t => ({ ...t, college: cd?.course?.college || '' }))
-        for (const t of teachers) {
-          if (!map.has(t.id)) {
-            map.set(t.id, { teacher: t, courseIds: new Set(), totalScore: 0, evalCount: 0, comments: [] })
-          }
-          const entry = map.get(t.id)!
-          entry.totalScore += ev.avgScore
-          entry.evalCount++
-          entry.comments.push(ev)
+        const teachers = (cd?.course?.teachers || [])
+        if (teachers.some(ct => ct.id === t.id)) {
+          totalScore += ev.avgScore
+          evalCount++
+          comments.push(ev)
         }
       }
     }
-    return Array.from(map.values()).map(e => ({
-      ...e,
-      avgScore: e.evalCount > 0 ? Math.round(e.totalScore / e.evalCount * 100) / 100 : 0,
-      courseCount: e.courseIds.size,
-    }))
-  })()
+    return {
+      teacher: { id: t.id, name: t.name, title: t.title, college: t.college },
+      courseIds: new Set(t.courses.map(c => c.id)),
+      totalScore,
+      evalCount,
+      comments,
+      courseCount: t.courseCount,
+      avgScore: evalCount > 0 ? Math.round(totalScore / evalCount * 100) / 100 : 0,
+    }
+  })
 
   const courseEvals = (courseId: number) => (stats?.evaluations || []).filter(e => e.course.id === courseId)
   const detailCourse = stats?.courses.find(c => c.course.id === showDetailModal)
@@ -98,6 +98,12 @@ export default function AdminPage() {
     loadLogs()
   }, [router])
 
+  const fetchTeachers = () => {
+    fetch("/api/admin/teachers").then(r => r.json()).then(data => {
+      if (data.code === 200) setTeacherList(data.data)
+    })
+  }
+
   const refreshData = () => {
     Promise.all([
       fetch("/api/stats/dashboard").then(r => r.json()),
@@ -106,6 +112,7 @@ export default function AdminPage() {
       if (statsData.code === 200) setStats(statsData.data)
       if (coursesData.code === 200) setCourses(coursesData.data)
     }).finally(() => setLoading(false))
+    fetchTeachers()
   }
 
   const handleAddCourse = async () => {
@@ -147,7 +154,7 @@ export default function AdminPage() {
     if (!confirm(`确定删除教师「${teacherName}」吗？此操作不可恢复。`)) return
     const res = await fetch(`/api/admin/teachers?id=${teacherId}`, { method: "DELETE" })
     const data = await res.json()
-    if (data.code === 200) refreshData()
+    if (data.code === 200) { fetchTeachers(); refreshData() }
     else alert(data.message || "删除失败")
   }
 
@@ -161,6 +168,7 @@ export default function AdminPage() {
     if (data.code === 200) {
       setShowAddTeacherModal(false)
       setTeacherForm({ name: "", title: "讲师", college: "计算机科学与技术学院" })
+      fetchTeachers()
       refreshData()
     } else {
       alert(data.message || "创建失败")
@@ -272,8 +280,30 @@ export default function AdminPage() {
             </div>
 
             {/* Course cards overview grouped by college */}
+            {/* Filters for dashboard */}
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-xs text-gray-400">学期:</span>
+              <select value={semesterFilter} onChange={e => setSemesterFilter(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                <option value="">全部学期</option>
+                {semesters.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <span className="text-xs text-gray-400 ml-2">学院:</span>
+              <select value={dashboardCollegeFilter} onChange={e => setDashboardCollegeFilter(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                <option value="">全部学院</option>
+                {colleges.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
             {(() => {
-              const filteredCourses = (stats?.courses || [])
+              const filteredCourses = (stats?.courses || []).filter(c => {
+                // We need semester info which is not in the dashboard data for courses
+                // Get semester from the courses state instead
+                const fullCourse = courses.find(cc => cc.id === c.course.id)
+                if (semesterFilter && fullCourse?.semester !== semesterFilter) return false
+                if (dashboardCollegeFilter && c.course.college !== dashboardCollegeFilter) return false
+                return true
+              })
               const grouped = new Map<string, typeof filteredCourses>()
               for (const c of filteredCourses) {
                 const key = c.course.college
@@ -553,6 +583,21 @@ export default function AdminPage() {
                 <h3 className="font-semibold text-gray-900">全部课程 ({courses.length})</h3>
                 <span className="text-xs text-gray-400">数据实时更新</span>
               </div>
+              {/* Course filters */}
+              <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
+                <span className="text-xs text-gray-400">学期:</span>
+                <select value={coursesSemesterFilter} onChange={e => setCoursesSemesterFilter(e.target.value)}
+                  className="px-2 py-1 border border-gray-300 rounded bg-white text-xs text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="">全部学期</option>
+                  {semesters.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <span className="text-xs text-gray-400 ml-2">学院:</span>
+                <select value={coursesCollegeFilter} onChange={e => setCoursesCollegeFilter(e.target.value)}
+                  className="px-2 py-1 border border-gray-300 rounded bg-white text-xs text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="">全部学院</option>
+                  {colleges.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -566,7 +611,11 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {courses.map(c => (
+                    {courses.filter(c => {
+                      if (coursesSemesterFilter && c.semester !== coursesSemesterFilter) return false
+                      if (coursesCollegeFilter && c.college !== coursesCollegeFilter) return false
+                      return true
+                    }).map(c => (
                       <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
                         <td className="py-3 px-4 font-mono text-gray-600">{c.code}</td>
                         <td className="py-3 px-4 font-medium text-gray-900">{c.name}</td>
