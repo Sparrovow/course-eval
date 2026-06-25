@@ -49,9 +49,9 @@ export default function LoginPage() {
         <div className="max-w-md text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
             <FaGraduationCap className="text-5xl" />
-            <h1 className="text-3xl font-bold">在线课程评价系统</h1>
           </div>
-          <p className="text-lg text-blue-100 mb-8">
+          <h1 className="text-4xl font-bold mb-2">在线课程评价系统</h1>
+          <p className="text-lg text-blue-200 mb-8">
             高校课程评价平台 · 多维评分 · 数据可视化
           </p>
           <div className="flex gap-4 justify-center text-sm text-blue-200">
