@@ -243,7 +243,7 @@ async function main() {
     });
   }
 
-  const courses = [];
+  const courses: any[] = [];
   for (const cd of courseData) {
     courses.push(await prisma.course.create({
       data: { code: cd.code, name: cd.name, credits: cd.credits, college: getCollege(cd.code), semester: parseInt(cd.code.slice(2))%2===0?"2024-2025-2":"2024-2025-1", description: cd.desc || "", coverColor: cd.color },
@@ -270,26 +270,47 @@ async function main() {
     }));
   }
 
-  // Assign teachers to courses: preset teachers get 3-5 each, rest to virtual
+  // Assign teachers to courses based on college match
   const allTeachers = [...teachers, ...virtualTeachers];
-  const remainingCourses = [...courses];
-  // First, assign preset teachers 3-5 courses each
+  // Build reverse: for each preset teacher, map to their college
+  const teacherCollegeMap: Record<number, string> = {
+    0: "计算机科学与技术学院", // 王建国
+    1: "计算机科学与技术学院", // 张丽华
+    2: "数学与统计学院",       // 刘明远
+    3: "计算机科学与技术学院", // 陈志远
+    4: "外国语学院",           // 孙晓芳
+    5: "电子信息工程学院",     // 周博文
+    6: "经济管理学院",         // 吴雅琴
+    7: "人文学院",             // 赵天宇
+  };
+  // Assign courses to preset teachers by college
+  const assignedCourseIds = new Set<number>();
   for (let ti = 0; ti < teachers.length; ti++) {
-    const num = randInt(3, 5);
-    for (let k = 0; k < num && remainingCourses.length > 0; k++) {
-      const idx = randInt(0, remainingCourses.length - 1);
-      const course = remainingCourses.splice(idx, 1)[0];
+    const targetCollege = teacherCollegeMap[ti];
+    // Find courses in this teacher's college
+    const sameCollegeCourses = courseData
+      .map((cd, idx) => ({ idx, college: cd.college }))
+      .filter(c => c.college === targetCollege && !assignedCourseIds.has(courses[c.idx].id))
+      .map(c => c.idx);
+    // Pick 3-5 courses for this teacher
+    const num = Math.min(randInt(3, 5), sameCollegeCourses.length);
+    const shuffled = [...sameCollegeCourses].sort(() => Math.random() - 0.5);
+    for (let k = 0; k < num; k++) {
+      const course = courses[shuffled[k]];
+      assignedCourseIds.add(course.id);
       await prisma.courseTeacher.create({
         data: { courseId: course.id, teacherId: teachers[ti].id },
       });
     }
   }
   // Assign remaining courses to virtual teachers
-  for (const course of remainingCourses) {
-    const vteacher = virtualTeachers[randInt(0, virtualTeachers.length - 1)];
-    await prisma.courseTeacher.create({
-      data: { courseId: course.id, teacherId: vteacher.id },
-    });
+  for (let ci = 0; ci < courses.length; ci++) {
+    if (!assignedCourseIds.has(courses[ci].id)) {
+      const vteacher = virtualTeachers[randInt(0, virtualTeachers.length - 1)];
+      await prisma.courseTeacher.create({
+        data: { courseId: courses[ci].id, teacherId: vteacher.id },
+      });
+    }
   }
   console.log(`✅ ${virtualTeachers.length} virtual teachers created`);
 
